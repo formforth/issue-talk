@@ -1,0 +1,106 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: macos-15-arm64
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install Nix
+        uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
+        with:
+          github_access_token: ${{ github.token }}
+          extra_nix_config: |
+            accept-flake-config = true
+      - name: Cache Nix store
+        uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+        with:
+          primary-key: nix-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('flake.nix', 'flake.lock') }}
+      - name: Check Nix configuration boundary
+        run: |
+          test "$(git ls-files '*.nix' | sort)" = flake.nix
+          test -f flake.lock
+      - name: Check formatting and hooks
+        run: |
+          nix fmt
+          git diff --exit-code
+          nix flake check --print-build-logs
+      - name: Check CI tools and Swift lint
+        run: |
+          nix develop .#ci --command swiftlint lint --strict
+          nix develop .#ci --command actionlint
+          nix develop .#ci --command ghalint run
+          nix develop .#ci --command pinact run --verify
+          nix develop .#ci --command zizmor --no-progress .github/workflows
+      - name: Scan full history for secrets
+        run: nix develop .#ci --command gitleaks git --redact
+
+  ios:
+    runs-on: macos-15-arm64
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Show Apple toolchain
+        run: xcodebuild -version
+      - name: Test shared Swift package
+        working-directory: Packages/IssueTalkCore
+        run: swift test
+      - name: Build and test iOS Simulator
+        run: |
+          simulator_id="$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          phones = [device for runtime, group in devices.items() if ".iOS-" in runtime
+                    for device in group if device["name"].startswith("iPhone")]
+          if not phones:
+              sys.exit("No available iPhone simulator")
+          print(phones[0]["udid"])
+          ')"
+          xcodebuild test \
+            -project IssueTalk.xcodeproj \
+            -scheme IssueTalk \
+            -destination "platform=iOS Simulator,id=$simulator_id" \
+            -derivedDataPath .derivedData \
+            CODE_SIGNING_ALLOWED=NO
+
+  ci:
+    if: always()
+    needs: [check, ios]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require all checks to succeed
+        env:
+          CHECK_RESULT: ${{ needs.check.result }}
+          IOS_RESULT: ${{ needs.ios.result }}
+        run: |
+          test "$CHECK_RESULT" = success
+          test "$IOS_RESULT" = success

@@ -1,0 +1,8 @@
+included:
+  - IssueTalk
+  - IssueTalkTests
+  - Packages/IssueTalkCore/Sources
+  - Packages/IssueTalkCore/Tests
+disabled_rules:
+  - opening_brace
+  - trailing_comma
