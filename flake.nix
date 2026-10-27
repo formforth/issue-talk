@@ -37,7 +37,10 @@
   outputs =
     inputs@{ flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
-      systems = [ "aarch64-darwin" ];
+      systems = [
+        "aarch64-darwin"
+        "x86_64-linux"
+      ];
       imports = [
         inputs.git-hooks.flakeModule
         inputs.treefmt-nix.flakeModule
@@ -53,29 +56,33 @@
         let
           workflowFiles = "^\\.github/workflows/.*\\.(yml|yaml)$";
           markdownFormatter = "${inputs.markdown-formatter.packages.${system}.default}/bin/mdfmt";
-          commonTools = with pkgs; [
-            gh
-            swift-format
-            swiftlint
-          ];
+          commonTools =
+            with pkgs;
+            [
+              gh
+              swift-format
+            ]
+            ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [ pkgs.swiftlint ];
           ciTools = with pkgs; [
             gitleaks
-            actionlint
-            ghalint
-            pinact
             zizmor
           ];
         in
         {
           devShells = {
-            default = pkgs.mkShell {
+            default = pkgs.mkShellNoCC {
               packages = commonTools;
               shellHook = ''
                 ${config.pre-commit.installationScript}
               '';
             };
-            ci = pkgs.mkShell {
-              packages = commonTools ++ ciTools;
+            ci = pkgs.mkShellNoCC {
+              packages = ciTools;
+            };
+          }
+          // pkgs.lib.optionalAttrs pkgs.stdenv.isDarwin {
+            swiftlint = pkgs.mkShellNoCC {
+              packages = [ pkgs.swiftlint ];
             };
           };
 
@@ -146,7 +153,7 @@
               deadnix.enable = true;
               shellcheck.enable = true;
               swiftlint = {
-                enable = true;
+                enable = pkgs.stdenv.isDarwin;
                 entry = "${pkgs.swiftlint}/bin/swiftlint lint --strict";
                 types = [ "swift" ];
                 pass_filenames = false;

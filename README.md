@@ -23,7 +23,7 @@ identifier in Xcode locally. Never commit signing materials or user settings.
 ```sh
 nix fmt
 nix flake check --print-build-logs
-nix develop .#ci --command swiftlint lint --strict
+nix develop .#swiftlint --command swiftlint lint --strict
 cd Packages/IssueTalkCore
 swift test
 ```
@@ -37,11 +37,26 @@ All Nix configuration lives in `flake.nix` and `flake.lock`.
 
 ## 2. Continuous integration
 
-`ci.yml` runs formatting, Nix checks, SwiftLint, Actions security linters, a full
-history secret scan, shared package tests, and iOS Simulator build/tests. The
-aggregate `ci` status requires both jobs to succeed, including when a job is
-skipped or cancelled. Dependabot checks Actions, Nix, and Swift dependencies
-daily with a seven-day cooldown.
+`ci.yml` runs formatting and offline linters once via `nix flake check` on Linux.
+The lean CI shell adds the full-history secret scan and online Actions advisory
+check. SwiftLint runs once on macOS alongside shared package tests and iOS
+Simulator build/tests. The aggregate `ci` status requires both jobs to succeed,
+including when a job is skipped or cancelled. Dependabot checks Actions, Nix,
+and Swift dependencies daily with a seven-day cooldown.
+
+Following `i9wa4/dotfiles`, CI uses Nix Quick Install, lockfile-based store cache
+keys, and bounded cache sizes (6 GiB on Linux; 2 GiB for macOS SwiftLint). Prefix
+restores reuse dependencies after lock updates; source-only changes retain the
+same Nix cache key. Tool-only shells use `mkShellNoCC` to avoid installing a C
+compiler. Linux Nix checks omit SwiftLint; macOS CI and local Darwin hooks run it.
+
+The iPhone Simulator starts before dependency setup and package tests. Simulator
+test parallelism is disabled for the single test suite to avoid booting clones.
+SwiftPM and Xcode build products are cached by toolchain, project/dependency
+definitions, and commit, with prefix restores for incremental builds. Simulator
+state is not cached, and all tests still run on cache hits. Cold and warm run
+times depend on runner and cache availability; no speedup is assumed without
+measuring the completed workflow.
 
 The only additional planned workflow is `llm-eval.yml`, scheduled or manual
 when issues #11 and #13 introduce inference and evaluation. It must not download

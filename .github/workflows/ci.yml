@@ -19,8 +19,8 @@ concurrency:
 
 jobs:
   check:
-    runs-on: macos-15
-    timeout-minutes: 45
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
@@ -30,39 +30,39 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Install Nix
-        uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
+        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
         with:
           github_access_token: ${{ github.token }}
-          extra_nix_config: |
+          nix_conf: |
             accept-flake-config = true
+            download-buffer-size = 134217728
       - name: Cache Nix store
         uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: nix-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('flake.nix', 'flake.lock') }}
+          primary-key: nix-check-gc6g-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('flake.lock') }}
+          restore-prefixes-first-match: nix-check-gc6g-v1-${{ runner.os }}-${{ runner.arch }}-
+          gc-max-store-size-linux: 6G
       - name: Check Nix configuration boundary
         run: |
           test "$(git ls-files '*.nix' | sort)" = flake.nix
           test -f flake.lock
-      - name: Check formatting and hooks
-        run: |
-          nix fmt
-          git diff --exit-code
-          nix flake check --print-build-logs
-      - name: Check CI tools and Swift lint
+      # treefmt-check and pre-commit already cover formatting and offline linters.
+      - name: Run formatting and lint checks once
+        run: nix flake check --print-build-logs
+      - name: Scan history and check Actions advisories
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          nix develop .#ci --command swiftlint lint --strict
-          nix develop .#ci --command actionlint
-          nix develop .#ci --command ghalint run
-          nix develop .#ci --command pinact run --fix=false --no-api
-          nix develop .#ci --command zizmor --no-progress .github/workflows
-      - name: Scan full history for secrets
-        run: nix develop .#ci --command gitleaks git --redact
+          nix develop .#ci --command bash -euo pipefail -c '
+            gitleaks git --redact
+            zizmor --no-progress .github/workflows
+          '
+      - name: Report Nix store size before cache save
+        run: du -sh /nix
 
   ios:
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
@@ -70,26 +70,73 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Show Apple toolchain
-        run: xcodebuild -version
-      - name: Test shared Swift package
-        working-directory: Packages/IssueTalkCore
-        run: swift test
-      - name: Build and test iOS Simulator
+      # Boot while caches, lint and the package tests run; do not cache Simulator state.
+      - name: Start iPhone Simulator
+        id: simulator
         run: |
           simulator_id="$(xcrun simctl list devices available -j | python3 -c '
-          import json, sys
+          import json, re, sys
           devices = json.load(sys.stdin)["devices"]
-          phones = [device for runtime, group in devices.items() if ".iOS-" in runtime
-                    for device in group if device["name"].startswith("iPhone")]
+          runtimes = sorted(
+              (runtime for runtime in devices if ".iOS-" in runtime),
+              key=lambda runtime: tuple(map(int, re.findall(r"\d+", runtime))), reverse=True)
+          phones = [device for runtime in runtimes for device in devices[runtime]
+                    if device["name"].startswith("iPhone") and device.get("isAvailable", False)]
           if not phones:
               sys.exit("No available iPhone simulator")
           print(phones[0]["udid"])
           ')"
+          echo "id=$simulator_id" >> "$GITHUB_OUTPUT"
+          if ! xcrun simctl list devices booted -j | python3 -c '
+          import json, sys
+          groups = json.load(sys.stdin)["devices"].values()
+          sys.exit(0 if any(d["udid"] == sys.argv[1] for g in groups for d in g) else 1)
+          ' "$simulator_id"; then
+            xcrun simctl boot "$simulator_id"
+          fi
+      - name: Identify Apple toolchain
+        id: xcode
+        run: |
+          xcodebuild -version
+          echo "key=$(xcodebuild -version | shasum -a 256 | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+      - name: Cache Swift and Xcode build products
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: |
+            Packages/IssueTalkCore/.build
+            .derivedData/Build
+            .derivedData/ModuleCache.noindex
+            .derivedData/SourcePackages
+          key: ios-build-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.key }}-${{ hashFiles('IssueTalk.xcodeproj/project.pbxproj', '**/Package.swift', '**/Package.resolved') }}-${{ github.sha }}
+          restore-keys: |
+            ios-build-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.key }}-${{ hashFiles('IssueTalk.xcodeproj/project.pbxproj', '**/Package.swift', '**/Package.resolved') }}-
+      - name: Install Nix for SwiftLint
+        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+        with:
+          github_access_token: ${{ github.token }}
+          nix_conf: |
+            accept-flake-config = true
+            download-buffer-size = 134217728
+      - name: Cache SwiftLint Nix store
+        uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+        with:
+          primary-key: nix-swiftlint-gc2g-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('flake.lock') }}
+          restore-prefixes-first-match: nix-swiftlint-gc2g-v1-${{ runner.os }}-${{ runner.arch }}-
+          gc-max-store-size-macos: 2G
+      - name: Lint Swift once
+        run: nix develop .#swiftlint --command swiftlint lint --strict
+      - name: Test shared Swift package
+        working-directory: Packages/IssueTalkCore
+        run: swift test
+      - name: Build and test iOS Simulator
+        env:
+          SIMULATOR_ID: ${{ steps.simulator.outputs.id }}
+        run: |
           xcodebuild test \
             -project IssueTalk.xcodeproj \
             -scheme IssueTalk \
-            -destination "platform=iOS Simulator,id=$simulator_id" \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
+            -parallel-testing-enabled NO \
             -derivedDataPath .derivedData \
             CODE_SIGNING_ALLOWED=NO
 
