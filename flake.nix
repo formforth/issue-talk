@@ -62,17 +62,26 @@
             headings = false
             reflow = true
           '';
+          # nix develop also sets NIX_BUILD_TOP; only a builder runs underneath it.
+          inNixBuild = ''[ -n "''${NIX_BUILD_TOP:-}" ] && [[ "$PWD/" == "$NIX_BUILD_TOP/"* ]]'';
           pinactRun = pkgs.writeShellScript "pinact-run" ''
-            if [ -n "''${NIX_BUILD_TOP:-}" ]; then
+            if ${inNixBuild}; then
               exec ${pkgs.pinact}/bin/pinact run --fix=false --no-api "$@"
             fi
             exec ${pkgs.pinact}/bin/pinact run "$@"
           '';
           zizmorRun = pkgs.writeShellScript "zizmor-run" ''
-            if [ -n "''${NIX_BUILD_TOP:-}" ]; then
+            if ${inNixBuild}; then
               exec ${pkgs.zizmor}/bin/zizmor --offline "$@"
             fi
             exec ${pkgs.zizmor}/bin/zizmor "$@"
+          '';
+          treefmtRun = pkgs.writeShellScript "treefmt-run" ''
+            # treefmt-nix checks formatting separately inside the sandbox.
+            if ${inNixBuild}; then
+              exit 0
+            fi
+            exec ${pkgs.nix}/bin/nix fmt "$@"
           '';
           commonTools =
             with pkgs;
@@ -179,7 +188,7 @@
               shellcheck.enable = true;
               treefmt = {
                 enable = true;
-                entry = "${pkgs.bash}/bin/bash -c 'test -n \"$NIX_BUILD_TOP\" || ${pkgs.nix}/bin/nix fmt'";
+                entry = "${treefmtRun}";
                 pass_filenames = false;
                 always_run = true;
               };
@@ -187,7 +196,7 @@
                 enable = pkgs.stdenv.hostPlatform.isDarwin;
                 entry = "${pkgs.writeShellScript "swiftlint-hook" ''
                   # Xcode's SourceKit is outside the Nix build sandbox.
-                  if [ -n "''${NIX_BUILD_TOP:-}" ]; then
+                  if ${inNixBuild}; then
                     exec ${pkgs.swiftlint}/bin/swiftlint lint --strict --no-cache --disable-sourcekit "$@"
                   fi
                   export XCODE_DEFAULT_TOOLCHAIN_OVERRIDE="$(/usr/bin/xcode-select -p)/Toolchains/XcodeDefault.xctoolchain"
