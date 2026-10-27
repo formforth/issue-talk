@@ -44,7 +44,12 @@
       ];
 
       perSystem =
-        { config, pkgs, system, ... }:
+        {
+          config,
+          pkgs,
+          system,
+          ...
+        }:
         let
           workflowFiles = "^\\.github/workflows/.*\\.(yml|yaml)$";
           markdownFormatter = "${inputs.markdown-formatter.packages.${system}.default}/bin/mdfmt";
@@ -87,7 +92,10 @@
               formatter = {
                 swift = {
                   command = "${pkgs.swift-format}/bin/swift-format";
-                  options = [ "format" "--in-place" ];
+                  options = [
+                    "format"
+                    "--in-place"
+                  ];
                   includes = [ "*.swift" ];
                 };
                 markdown = {
@@ -96,7 +104,11 @@
                   includes = [ "*.md" ];
                 };
               };
-              global.excludes = [ ".direnv" ".git" "*.lock" ];
+              global.excludes = [
+                ".direnv"
+                ".git"
+                "*.lock"
+              ];
             };
           };
 
