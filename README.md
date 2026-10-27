@@ -2,8 +2,9 @@
 
 A SwiftUI iPhone app for a hands-free GitHub Issue inbox. The initial build
 contains an empty inbox, settings navigation, and an independent Swift package.
-GitHub login, issue registration, posting, persistence, local inference, and voice
-are tracked in [the implementation epic](https://github.com/formforth/issue-talk/issues/1).
+GitHub login, issue registration, posting, persistence, local inference, and
+voice are tracked in
+[the implementation epic](https://github.com/formforth/issue-talk/issues/1).
 
 ## 1. Development
 
@@ -23,36 +24,47 @@ identifier in Xcode locally. Never commit signing materials or user settings.
 ```sh
 nix fmt
 nix flake check --print-build-logs
-nix develop .#swiftlint --command swiftlint lint --strict
+nix develop --command pre-commit run --all-files
+# Run a single hook using the same generated configuration:
+nix develop --command pre-commit run --all-files swiftlint
 cd Packages/IssueTalkCore
 swift test
 ```
 
-`Packages/IssueTalkCore` is the local SwiftPM library shared by the app and tests.
-It has no remote dependencies yet, so SwiftPM does not generate `Package.resolved`.
-Commit generated resolution files when adding the first remote dependency.
-The flake inputs start from the exact lock graph used by the referenced
-`i9wa4/tmux-a2a-postman` project; update them with `nix flake update`.
-All Nix configuration lives in `flake.nix` and `flake.lock`.
+`Packages/IssueTalkCore` is the local SwiftPM library shared by the app and
+tests. It has no remote dependencies yet, so SwiftPM does not generate
+`Package.resolved`. Commit generated resolution files when adding the first
+remote dependency. The flake inputs start from the exact lock graph used by the
+referenced `i9wa4/tmux-a2a-postman` project; update them with
+`nix flake update`. All Nix configuration lives in `flake.nix` and `flake.lock`.
 
 ## 2. Continuous integration
 
-`ci.yml` runs formatting and offline linters once via `nix flake check` on Linux.
-The lean CI shell adds the full-history secret scan and online Actions advisory
-check. SwiftLint runs once on macOS alongside shared package tests and iOS
-Simulator build/tests. The aggregate `ci` status requires both jobs to succeed,
-including when a job is skipped or cancelled. Dependabot checks Actions, Nix,
-and Swift dependencies daily with a seven-day cooldown.
+Lint and formatting rules live in `pre-commit.settings.hooks` in `flake.nix`,
+following `i9wa4/dotfiles` and `i9wa4/tmux-a2a-postman`. `nix develop` installs
+those hooks for commits, including treefmt, the Markdown formatter, rumdl,
+SwiftLint, Actions linters, secret detection, and general file checks.
+`nix develop --command pre-commit run --all-files` runs the same generated
+configuration on all files; append a hook ID to run just that hook.
 
-Following `i9wa4/dotfiles`, Linux CI uses Nix Quick Install, lockfile-based store cache
-keys, and bounded cache sizes (6 GiB on Linux; 2 GiB for macOS SwiftLint). Prefix
-restores reuse dependencies after lock updates; source-only changes retain the
-same Nix cache key. Tool-only shells use `mkShellNoCC` to avoid installing a C
-compiler. Linux Nix checks omit SwiftLint; macOS CI and local Darwin hooks run it.
-Darwin sandbox checks use SwiftLint's syntax-only mode because Xcode SourceKit
-is outside the sandbox; local hooks and macOS CI run the full lint rules.
-Cache restore steps are best-effort with two-minute limits; cache availability
-does not decide whether lint, build, and test checks pass.
+`ci.yml` runs `nix flake check` on Linux to execute the hooks and treefmt's
+formatting check. As in the reference repositories, the full-history gitleaks
+scan runs separately. SwiftLint needs Xcode SourceKit, so macOS CI invokes the
+same pre-commit hook outside the sandbox, alongside package and Simulator tests.
+The workflow contains no separate lint rule definitions or duplicate Actions
+linter commands. Darwin Nix sandbox checks use syntax-only SwiftLint; local
+hooks and macOS CI use full SourceKit checks. Pinact uses offline verification
+inside the sandbox and its normal behavior locally.
+
+The aggregate `ci` status requires both jobs to succeed, including when a job is
+skipped or cancelled. Dependabot checks Actions, Nix, and Swift dependencies
+daily with a seven-day cooldown. All Nix logic remains inline in `flake.nix`.
+
+Linux CI uses Nix Quick Install and lockfile-based Nix store caches, capped at
+6 GiB on each platform. Prefix restores reuse dependencies after lock updates;
+source-only changes retain the same Nix cache key. Tool-only shells use
+`mkShellNoCC`. Cache restores are best-effort with two-minute limits; cache
+availability does not decide whether the required checks pass.
 
 macOS uses the standard Nix installer to avoid slow APFS initialization observed
 with Quick Install. The iPhone Simulator starts in the background before

@@ -56,33 +56,43 @@
         let
           workflowFiles = "^\\.github/workflows/.*\\.(yml|yaml)$";
           markdownFormatter = "${inputs.markdown-formatter.packages.${system}.default}/bin/mdfmt";
+          rumdlConfig = pkgs.writeText "rumdl.toml" ''
+            [MD013]
+            code-blocks = false
+            headings = false
+            reflow = true
+          '';
+          pinactRun = pkgs.writeShellScript "pinact-run" ''
+            if [ -n "''${NIX_BUILD_TOP:-}" ]; then
+              exec ${pkgs.pinact}/bin/pinact run --fix=false --no-api "$@"
+            fi
+            exec ${pkgs.pinact}/bin/pinact run "$@"
+          '';
+          zizmorRun = pkgs.writeShellScript "zizmor-run" ''
+            if [ -n "''${NIX_BUILD_TOP:-}" ]; then
+              exec ${pkgs.zizmor}/bin/zizmor --offline "$@"
+            fi
+            exec ${pkgs.zizmor}/bin/zizmor "$@"
+          '';
           commonTools =
             with pkgs;
             [
               gh
+              pre-commit
               swift-format
             ]
-            ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [ pkgs.swiftlint ];
-          ciTools = with pkgs; [
-            gitleaks
-            zizmor
-          ];
+            ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isDarwin [ pkgs.swiftlint ];
         in
         {
           devShells = {
             default = pkgs.mkShellNoCC {
-              packages = commonTools;
+              packages = commonTools ++ config.pre-commit.settings.enabledPackages;
               shellHook = ''
                 ${config.pre-commit.installationScript}
               '';
             };
             ci = pkgs.mkShellNoCC {
-              packages = ciTools;
-            };
-          }
-          // pkgs.lib.optionalAttrs pkgs.stdenv.isDarwin {
-            swiftlint = pkgs.mkShellNoCC {
-              packages = [ pkgs.swiftlint ];
+              packages = [ pkgs.gitleaks ];
             };
           };
 
@@ -105,9 +115,13 @@
                   ];
                   includes = [ "*.swift" ];
                 };
-                markdown = {
-                  command = markdownFormatter;
-                  options = [ "--write" ];
+                rumdl = {
+                  command = "${pkgs.rumdl}/bin/rumdl";
+                  options = [
+                    "fmt"
+                    "--config"
+                    "${rumdlConfig}"
+                  ];
                   includes = [ "*.md" ];
                 };
               };
@@ -141,24 +155,42 @@
               };
               pinact = {
                 enable = true;
-                entry = "${pkgs.pinact}/bin/pinact run --fix=false --no-api";
+                entry = "${pinactRun}";
                 files = workflowFiles;
               };
               zizmor = {
                 enable = true;
-                entry = "${pkgs.zizmor}/bin/zizmor --offline";
+                entry = "${zizmorRun}";
                 files = workflowFiles;
               };
               statix.enable = true;
               deadnix.enable = true;
+              rumdl-check = {
+                enable = true;
+                entry = "${pkgs.rumdl}/bin/rumdl check --config ${rumdlConfig}";
+                types = [ "markdown" ];
+              };
+              markdown-formatter = {
+                enable = true;
+                name = "markdown-formatter (all tracked markdown)";
+                entry = "${markdownFormatter} --write";
+                types = [ "markdown" ];
+              };
               shellcheck.enable = true;
+              treefmt = {
+                enable = true;
+                entry = "${pkgs.bash}/bin/bash -c 'test -n \"$NIX_BUILD_TOP\" || ${pkgs.nix}/bin/nix fmt'";
+                pass_filenames = false;
+                always_run = true;
+              };
               swiftlint = {
-                enable = pkgs.stdenv.isDarwin;
+                enable = pkgs.stdenv.hostPlatform.isDarwin;
                 entry = "${pkgs.writeShellScript "swiftlint-hook" ''
                   # Xcode's SourceKit is outside the Nix build sandbox.
                   if [ -n "''${NIX_BUILD_TOP:-}" ]; then
                     exec ${pkgs.swiftlint}/bin/swiftlint lint --strict --no-cache --disable-sourcekit "$@"
                   fi
+                  export XCODE_DEFAULT_TOOLCHAIN_OVERRIDE="$(/usr/bin/xcode-select -p)/Toolchains/XcodeDefault.xctoolchain"
                   exec ${pkgs.swiftlint}/bin/swiftlint lint --strict --no-cache "$@"
                 ''}";
                 types = [ "swift" ];

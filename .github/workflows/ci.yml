@@ -49,16 +49,10 @@ jobs:
           test "$(git ls-files '*.nix' | sort)" = flake.nix
           test -f flake.lock
       # treefmt-check and pre-commit already cover formatting and offline linters.
-      - name: Run formatting and lint checks once
+      - name: Run nix flake check
         run: nix flake check --print-build-logs
-      - name: Scan history and check Actions advisories
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          nix develop .#ci --command bash -euo pipefail -c '
-            gitleaks git --redact
-            zizmor --no-progress .github/workflows
-          '
+      - name: Run gitleaks history scan
+        run: nix develop .#ci --command gitleaks detect --verbose --redact
       - name: Report Nix store size before cache save
         run: du -sh /nix
 
@@ -110,27 +104,25 @@ jobs:
           key: ios-build-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.key }}-${{ hashFiles('IssueTalk.xcodeproj/project.pbxproj', '**/Package.swift', '**/Package.resolved') }}-${{ github.sha }}
           restore-keys: |
             ios-build-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.key }}-${{ hashFiles('IssueTalk.xcodeproj/project.pbxproj', '**/Package.swift', '**/Package.resolved') }}-
-      - name: Install Nix for SwiftLint
+      - name: Install Nix
         uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
         with:
           github_access_token: ${{ github.token }}
           extra_nix_config: |
             accept-flake-config = true
             download-buffer-size = 134217728
-      - name: Cache SwiftLint Nix store
+      - name: Cache Nix store
         timeout-minutes: 2
         continue-on-error: true
         uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: nix-swiftlint-gc2g-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('flake.lock') }}
-          restore-prefixes-first-match: nix-swiftlint-gc2g-v1-${{ runner.os }}-${{ runner.arch }}-
-          gc-max-store-size-macos: 2G
-      - name: Lint Swift once
-        run: |
-          toolchain_dir="$(dirname "$(dirname "$(dirname "$(xcrun --find swift)")")")"
-          nix develop .#swiftlint --command env \
-            XCODE_DEFAULT_TOOLCHAIN_OVERRIDE="$toolchain_dir" \
-            swiftlint lint --strict --no-cache
+          primary-key: nix-hooks-gc6g-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('flake.lock') }}
+          restore-prefixes-first-match: |
+            nix-hooks-gc6g-v1-${{ runner.os }}-${{ runner.arch }}-
+            nix-swiftlint-gc2g-v1-${{ runner.os }}-${{ runner.arch }}-
+          gc-max-store-size-macos: 6G
+      - name: Run SwiftLint pre-commit hook
+        run: nix develop --command pre-commit run --all-files swiftlint
       - name: Test shared Swift package
         working-directory: Packages/IssueTalkCore
         run: swift test
