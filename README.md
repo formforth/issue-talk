@@ -5,7 +5,7 @@ contains an empty inbox, settings navigation, and an independent Swift package.
 GitHub login, issue registration, posting, persistence, local inference, and voice
 are tracked in [the implementation epic](https://github.com/formforth/issue-talk/issues/1).
 
-## Development
+## 1. Development
 
 Use Apple Silicon macOS, Xcode 16 or newer with an iOS 17+ Simulator, and Nix
 with flakes enabled. Xcode supplies the compiler, Apple SDK, simulators, and
@@ -35,7 +35,7 @@ The flake inputs start from the exact lock graph used by the referenced
 `i9wa4/tmux-a2a-postman` project; update them with `nix flake update`.
 All Nix configuration lives in `flake.nix` and `flake.lock`.
 
-## Continuous integration
+## 2. Continuous integration
 
 `ci.yml` runs formatting, Nix checks, SwiftLint, Actions security linters, a full
 history secret scan, shared package tests, and iOS Simulator build/tests. The

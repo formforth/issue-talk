@@ -7,6 +7,6 @@ let package = Package(
   products: [.library(name: "IssueTalkCore", targets: ["IssueTalkCore"])],
   targets: [
     .target(name: "IssueTalkCore"),
-    .testTarget(name: "IssueTalkCoreTests", dependencies: ["IssueTalkCore"])
+    .testTarget(name: "IssueTalkCoreTests", dependencies: ["IssueTalkCore"]),
   ]
 )
