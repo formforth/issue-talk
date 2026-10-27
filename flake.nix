@@ -154,7 +154,13 @@
               shellcheck.enable = true;
               swiftlint = {
                 enable = pkgs.stdenv.isDarwin;
-                entry = "${pkgs.swiftlint}/bin/swiftlint lint --strict";
+                entry = "${pkgs.writeShellScript "swiftlint-hook" ''
+                  # Xcode's SourceKit is outside the Nix build sandbox.
+                  if [ -n "''${NIX_BUILD_TOP:-}" ]; then
+                    exec ${pkgs.swiftlint}/bin/swiftlint lint --strict --no-cache --disable-sourcekit "$@"
+                  fi
+                  exec ${pkgs.swiftlint}/bin/swiftlint lint --strict --no-cache "$@"
+                ''}";
                 types = [ "swift" ];
                 pass_filenames = false;
               };

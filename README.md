@@ -49,6 +49,8 @@ keys, and bounded cache sizes (6 GiB on Linux; 2 GiB for macOS SwiftLint). Prefi
 restores reuse dependencies after lock updates; source-only changes retain the
 same Nix cache key. Tool-only shells use `mkShellNoCC` to avoid installing a C
 compiler. Linux Nix checks omit SwiftLint; macOS CI and local Darwin hooks run it.
+Darwin sandbox checks use SwiftLint's syntax-only mode because Xcode SourceKit
+is outside the sandbox; local hooks and macOS CI run the full lint rules.
 
 The iPhone Simulator starts before dependency setup and package tests. Simulator
 test parallelism is disabled for the single test suite to avoid booting clones.

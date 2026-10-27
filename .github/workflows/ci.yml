@@ -124,7 +124,11 @@ jobs:
           restore-prefixes-first-match: nix-swiftlint-gc2g-v1-${{ runner.os }}-${{ runner.arch }}-
           gc-max-store-size-macos: 2G
       - name: Lint Swift once
-        run: nix develop .#swiftlint --command swiftlint lint --strict
+        run: |
+          toolchain_dir="$(dirname "$(dirname "$(dirname "$(xcrun --find swift)")")")"
+          nix develop .#swiftlint --command env \
+            XCODE_DEFAULT_TOOLCHAIN_OVERRIDE="$toolchain_dir" \
+            swiftlint lint --strict --no-cache
       - name: Test shared Swift package
         working-directory: Packages/IssueTalkCore
         run: swift test
