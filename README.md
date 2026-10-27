@@ -44,7 +44,7 @@ Simulator build/tests. The aggregate `ci` status requires both jobs to succeed,
 including when a job is skipped or cancelled. Dependabot checks Actions, Nix,
 and Swift dependencies daily with a seven-day cooldown.
 
-Following `i9wa4/dotfiles`, CI uses Nix Quick Install, lockfile-based store cache
+Following `i9wa4/dotfiles`, Linux CI uses Nix Quick Install, lockfile-based store cache
 keys, and bounded cache sizes (6 GiB on Linux; 2 GiB for macOS SwiftLint). Prefix
 restores reuse dependencies after lock updates; source-only changes retain the
 same Nix cache key. Tool-only shells use `mkShellNoCC` to avoid installing a C
@@ -54,7 +54,9 @@ is outside the sandbox; local hooks and macOS CI run the full lint rules.
 Cache restore steps are best-effort with two-minute limits; cache availability
 does not decide whether lint, build, and test checks pass.
 
-The iPhone Simulator starts before dependency setup and package tests. Simulator
+macOS uses the standard Nix installer to avoid slow APFS initialization observed
+with Quick Install. The iPhone Simulator starts in the background before
+dependency setup and package tests. Simulator
 test parallelism is disabled for the single test suite to avoid booting clones.
 SwiftPM and Xcode build products are cached by toolchain, project/dependency
 definitions, and commit, with prefix restores for incremental builds. Simulator

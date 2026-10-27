@@ -76,7 +76,7 @@ jobs:
       - name: Start iPhone Simulator
         id: simulator
         run: |
-          simulator_id="$(xcrun simctl list devices available -j | python3 -c '
+          read -r simulator_id simulator_state < <(xcrun simctl list devices available -j | python3 -c '
           import json, re, sys
           devices = json.load(sys.stdin)["devices"]
           runtimes = sorted(
@@ -86,15 +86,11 @@ jobs:
                     if device["name"].startswith("iPhone") and device.get("isAvailable", False)]
           if not phones:
               sys.exit("No available iPhone simulator")
-          print(phones[0]["udid"])
-          ')"
+          print(phones[0]["udid"], phones[0]["state"])
+          ')
           echo "id=$simulator_id" >> "$GITHUB_OUTPUT"
-          if ! xcrun simctl list devices booted -j | python3 -c '
-          import json, sys
-          groups = json.load(sys.stdin)["devices"].values()
-          sys.exit(0 if any(d["udid"] == sys.argv[1] for g in groups for d in g) else 1)
-          ' "$simulator_id"; then
-            xcrun simctl boot "$simulator_id"
+          if [[ "$simulator_state" != Booted ]]; then
+            nohup xcrun simctl boot "$simulator_id" > "$RUNNER_TEMP/issue-talk-simulator-boot.log" 2>&1 &
           fi
       - name: Identify Apple toolchain
         id: xcode
@@ -115,10 +111,10 @@ jobs:
           restore-keys: |
             ios-build-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.key }}-${{ hashFiles('IssueTalk.xcodeproj/project.pbxproj', '**/Package.swift', '**/Package.resolved') }}-
       - name: Install Nix for SwiftLint
-        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+        uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
         with:
           github_access_token: ${{ github.token }}
-          nix_conf: |
+          extra_nix_config: |
             accept-flake-config = true
             download-buffer-size = 134217728
       - name: Cache SwiftLint Nix store
