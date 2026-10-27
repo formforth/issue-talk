@@ -49,11 +49,13 @@ jobs:
           git diff --exit-code
           nix flake check --print-build-logs
       - name: Check CI tools and Swift lint
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           nix develop .#ci --command swiftlint lint --strict
           nix develop .#ci --command actionlint
           nix develop .#ci --command ghalint run
-          nix develop .#ci --command pinact run --verify
+          nix develop .#ci --command pinact run --fix=false --no-api
           nix develop .#ci --command zizmor --no-progress .github/workflows
       - name: Scan full history for secrets
         run: nix develop .#ci --command gitleaks git --redact

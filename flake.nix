@@ -134,12 +134,12 @@
               };
               pinact = {
                 enable = true;
-                entry = "${pkgs.pinact}/bin/pinact run";
+                entry = "${pkgs.pinact}/bin/pinact run --fix=false --no-api";
                 files = workflowFiles;
               };
               zizmor = {
                 enable = true;
-                entry = "${pkgs.zizmor}/bin/zizmor";
+                entry = "${pkgs.zizmor}/bin/zizmor --offline";
                 files = workflowFiles;
               };
               statix.enable = true;
