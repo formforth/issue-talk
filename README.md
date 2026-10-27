@@ -51,6 +51,8 @@ same Nix cache key. Tool-only shells use `mkShellNoCC` to avoid installing a C
 compiler. Linux Nix checks omit SwiftLint; macOS CI and local Darwin hooks run it.
 Darwin sandbox checks use SwiftLint's syntax-only mode because Xcode SourceKit
 is outside the sandbox; local hooks and macOS CI run the full lint rules.
+Cache restore steps are best-effort with two-minute limits; cache availability
+does not decide whether lint, build, and test checks pass.
 
 The iPhone Simulator starts before dependency setup and package tests. Simulator
 test parallelism is disabled for the single test suite to avoid booting clones.
