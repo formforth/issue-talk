@@ -68,6 +68,8 @@ struct VoiceView: View {
     .onReceive(
       NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification)
         .receive(on: RunLoop.main)
-    ) { _ in voice.stop() }
+    ) { notification in
+      if ReadingSpeaker.isExternalRouteChange(notification) { voice.stop() }
+    }
   }
 }

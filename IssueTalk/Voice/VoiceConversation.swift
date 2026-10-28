@@ -67,7 +67,7 @@ final class VoiceConversation {
         else { throw LocalInferenceError.invalidSuggestion }
         model.setDiscussionIssue(item.id)
         say(
-          "Discussing \(item.metadata.title). No posting target has been changed by a filter.",
+          "Discussing \(item.metadata.title).",
           model: model)
       case .draft:
         let proposal = try DraftProposal(suggestion: suggestion, workspace: model.workspace)
@@ -146,11 +146,16 @@ final class VoiceConversation {
       guard let id = model.workspace.discussionIssueID,
         let item = model.workspace.monitored.first(where: { $0.id == id })
       else { throw LocalInferenceError.invalidSuggestion }
-      confirmation = try PostConfirmation(issue: item)
+      _ = try PostConfirmation(issue: item)
+      confirmation = nil
       let source = item.replySource.map { "Reply source: \($0.absoluteString)." } ?? "New topic."
       say(
         "Post to \(item.identity.owner)/\(item.identity.repository), Issue \(item.identity.number). \(source) "
-          + "Draft: \(item.draft). Say confirm post within one minute, or cancel.", model: model)
+          + "Draft: \(item.draft). Say confirm post within one minute, or cancel.", model: model
+      ) {
+        // Start the deadline only after the complete destination/body review was spoken.
+        self.confirmation = try? PostConfirmation(issue: item)
+      }
     } catch {
       confirmation = nil
       status = "Choose an Issue and save a valid draft first."
@@ -182,10 +187,15 @@ final class VoiceConversation {
     }
   }
 
-  private func say(_ text: String, model: InboxModel) {
+  private func say(_ text: String, model: InboxModel, finished: @escaping () -> Void = {}) {
     recognizer.stop()
     status = text
-    do { try speaker.speak(text) { Task { await self.listen(model) } } } catch {
+    do {
+      try speaker.speak(text) {
+        finished()
+        Task { await self.listen(model) }
+      }
+    } catch {
       running = false
       status = "Speech is unavailable. Use text input."
     }

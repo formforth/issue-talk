@@ -22,6 +22,7 @@ final class OnDeviceRecognizer {
 
   func start(finished: @escaping @MainActor (String) -> Void) async {
     stop()
+    errorMessage = nil
     let requestedGeneration = generation
     let status = await withCheckedContinuation { continuation in
       SFSpeechRecognizer.requestAuthorization { continuation.resume(returning: $0) }
