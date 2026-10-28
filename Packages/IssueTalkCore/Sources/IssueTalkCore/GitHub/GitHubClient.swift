@@ -70,7 +70,7 @@ public actor GitHubClient {
     }
     guard !body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, body.utf8.count <= 65_536
     else {
-      throw IssueTalkError.invalidResponse
+      throw IssueTalkError.invalidComment
     }
     // Reserve before token lookup as well as HTTP I/O: either can suspend.
     writes[operationID] = Write(issue: identity, body: body)

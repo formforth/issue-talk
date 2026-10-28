@@ -3,6 +3,7 @@ import Foundation
 public enum IssueTalkError: Error, Equatable, Sendable {
   case invalidIssueURL
   case invalidResponse
+  case invalidComment
   case authenticationRequired
   case permissionDenied
   case notFound

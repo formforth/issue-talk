@@ -80,5 +80,13 @@ struct OAuthTests {
     #expect(restored.issues[0].comments[0].body == "Raw **Markdown**")
     item.replySource = URL(string: "https://github.com/example/sample/issues/1#issuecomment-999")
     #expect(throws: IssueTalkError.invalidResponse) { try item.commentBody() }
+    item.replySource = nil
+    item.draft = "    code\n"
+    #expect(try item.commentBody() == "    code\n")
+    item.draft = String(repeating: "a", count: 65_537)
+    #expect(throws: IssueTalkError.invalidComment) { try item.commentBody() }
+    item.draft = " "
+    #expect(throws: IssueTalkError.invalidComment) { try item.commentBody() }
+
   }
 }

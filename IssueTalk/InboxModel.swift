@@ -164,7 +164,8 @@ final class InboxModel {
   private static func rejectedWrite(_ error: Error) -> Bool {
     guard let error = error as? IssueTalkError else { return false }
     switch error {
-    case .authenticationRequired, .permissionDenied, .notFound, .rateLimited: return true
+    case .authenticationRequired, .permissionDenied, .notFound, .rateLimited, .invalidComment:
+      return true
     case .server(let status): return (400...499).contains(status)
     default: return false
     }
@@ -202,6 +203,8 @@ final class InboxModel {
     case IssueTalkError.rateLimited:
       message = "GitHub's rate limit was reached. Wait before refreshing."
     case IssueTalkError.notFound: message = "This Issue is unavailable or you do not have access."
+    case IssueTalkError.invalidComment:
+      message = "Write a non-empty comment of at most 64 KiB, including its reply-source link."
     case IssueTalkError.invalidIssueURL: message = "Paste an HTTPS github.com Issue URL."
     case IssueTalkError.uncertainWrite:
       message =

@@ -89,12 +89,20 @@ public struct MonitoredIssue: Codable, Identifiable, Sendable {
   }
 
   public func commentBody() throws -> String {
-    let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !text.isEmpty else { throw IssueTalkError.invalidResponse }
-    guard let source = replySource else { return text }
-    guard comments.contains(where: { $0.htmlURL == source }) else {
-      throw IssueTalkError.invalidResponse
+    let text = draft
+    guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+      throw IssueTalkError.invalidComment
     }
-    return "In reply to \(source.absoluteString)\n\n\(text)"
+    let body: String
+    if let source = replySource {
+      guard comments.contains(where: { $0.htmlURL == source }) else {
+        throw IssueTalkError.invalidResponse
+      }
+      body = "In reply to \(source.absoluteString)\n\n\(text)"
+    } else {
+      body = text
+    }
+    guard body.utf8.count <= 65_536 else { throw IssueTalkError.invalidComment }
+    return body
   }
 }

@@ -8,6 +8,9 @@
     private var player: AVAudioPlayer?
     private let speech = AVSpeechSynthesizer()
     private var recordingURL: URL?
+    private var probeURL: URL {
+      FileManager.default.temporaryDirectory.appendingPathComponent("issue-talk-audio-probe.m4a")
+    }
     private(set) var events: [String] = []
     private(set) var recording = false
 
@@ -22,8 +25,7 @@
         try session.setCategory(
           .playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth])
         try session.setActive(true)
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(
-          "issue-talk-audio-probe.m4a")
+        let url = probeURL
         let settings: [String: Any] = [
           AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 44_100,
           AVNumberOfChannelsKey: 1, AVEncoderAudioQualityKey: AVAudioQuality.medium.rawValue,
@@ -99,7 +101,7 @@
 
     func clear() {
       stop()
-      if let recordingURL { try? FileManager.default.removeItem(at: recordingURL) }
+      try? FileManager.default.removeItem(at: probeURL)
       recordingURL = nil
       events.removeAll()
     }
