@@ -2,7 +2,7 @@
 
 ## 1. Development Environment
 
-Use Apple Silicon macOS, Xcode 16 or newer, the iOS Simulator, and Nix with
+Use Apple Silicon macOS, Xcode 26 or newer, the iOS Simulator, and Nix with
 flakes enabled. Xcode provides the Apple compiler, SDK, device support, and
 signing. Nix provides the developer tools and generated pre-commit hooks.
 

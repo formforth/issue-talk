@@ -127,6 +127,40 @@ extension InboxModel {
     } catch { message = "Shared URLs could not be read. Saved Issues and drafts are retained." }
   }
 
+  func setDiscussionIssue(_ id: Int64) {
+    guard workspace.monitored.contains(where: { $0.id == id }) else { return }
+    do {
+      var updated = workspace
+      updated.discussionIssueID = id
+      try commit(updated)
+    } catch { report(error) }
+  }
+
+  func applyDraft(_ proposal: DraftProposal) -> Bool {
+    do {
+      try update(proposal.issueID) { item in
+        guard item.identity.url == proposal.issueURL, !item.writeUnresolved else {
+          throw LocalInferenceError.invalidSuggestion
+        }
+        item.replySource = proposal.sourceURL
+        item.draft = proposal.text
+        _ = try item.commentBody()
+      }
+      return true
+    } catch {
+      report(error)
+      return false
+    }
+  }
+
+  func recordAssistant(_ text: String, issueIDs: Set<Int64>) {
+    do {
+      var updated = workspace
+      try updated.appendTurn(ConversationTurn(role: .assistant, body: text, issueIDs: issueIDs))
+      try commit(updated)
+    } catch { report(error) }
+  }
+
   func setMonitoring(_ id: Int64, enabled: Bool) {
     guard !busy else { return }
     do { try update(id) { $0.monitoring = enabled } } catch { report(error) }
@@ -164,6 +198,9 @@ extension InboxModel {
     } catch { report(error) }
   }
 
+}
+
+extension InboxModel {
   func pollIfNeeded(force: Bool = false) async {
     guard !busy, authenticated, force || Date() >= nextPoll else { return }
     nextPoll = Date().addingTimeInterval(60)

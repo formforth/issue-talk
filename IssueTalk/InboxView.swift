@@ -21,6 +21,7 @@ struct InboxView: View {
           }
           Button("Import shared Issues") { Task { await model.importSharedIssues() } }
             .disabled(!model.authenticated || model.busy)
+          NavigationLink("Voice conversation") { VoiceView(model: model) }
           Text(model.pollStatus).font(.caption).foregroundStyle(.secondary)
         }
         Section("Register an Issue") {

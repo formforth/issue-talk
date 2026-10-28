@@ -24,7 +24,7 @@ struct SettingsView: View {
       Section("About") {
         Text("A hands-free GitHub Issue inbox")
         Text(
-          "Manual text mode is available without an LLM. Voice and inference are under development."
+          "Manual text and read-next commands work without an LLM. Local suggestions require an eligible iPhone, iOS 26 and Apple Intelligence."
         )
       }
     }.navigationTitle("Settings")

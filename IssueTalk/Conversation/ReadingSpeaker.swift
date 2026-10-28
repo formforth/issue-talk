@@ -18,11 +18,15 @@ final class ReadingSpeaker: NSObject, AVSpeechSynthesizerDelegate {
   }
 
   func start(_ session: ReadingSession, finished: @escaping () -> Void) throws {
+    try speak(session.text, finished: finished)
+  }
+
+  func speak(_ text: String, finished: @escaping () -> Void) throws {
     stop()
     let audio = AVAudioSession.sharedInstance()
     try audio.setCategory(.playback, mode: .spokenAudio)
     try audio.setActive(true)
-    let utterance = AVSpeechUtterance(string: session.text)
+    let utterance = AVSpeechUtterance(string: text)
     self.utterance = utterance
     completion = finished
     active = true
