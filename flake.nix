@@ -161,7 +161,11 @@
             check.enable = true;
             settings.hooks = {
               end-of-file-fixer.enable = true;
-              trim-trailing-whitespace.enable = true;
+              # Preserve the exact upstream bytes, including whitespace inside JS templates.
+              trim-trailing-whitespace = {
+                enable = true;
+                excludes = [ "^IssueTalk/Resources/Renderer/mermaid\\.min\\.js$" ];
+              };
               # Pinned offline renderer; its hash and license are verified separately.
               check-added-large-files = {
                 enable = true;

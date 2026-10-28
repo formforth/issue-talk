@@ -1,6 +1,7 @@
 import AVFoundation
 import Foundation
 import IssueTalkCore
+import SwiftUI
 import WebKit
 import XCTest
 
@@ -103,5 +104,47 @@ final class MermaidRenderingTests: XCTestCase {
       try await Task.sleep(for: .milliseconds(100))
     }
     throw NSError(domain: "RendererNotReady", code: 1)
+  }
+}
+
+@MainActor
+final class MarkdownSnapshotTests: XCTestCase {
+  func testNativeGFMLightAndDarkSnapshots() async throws {
+    let source = """
+      # Synthetic fixture
+      **Strong** *emphasis* ~~removed~~ `inline` [Issue](https://github.com/test/repo/issues/1)
+
+      - [x] Complete
+      - [ ] Pending
+
+      | Key | Value |
+      | --- | --- |
+      | Status | Synthetic |
+
+      > Quoted context
+
+      ```swift
+      let count = 2
+      ```
+      """
+    for theme in [ColorScheme.light, .dark] {
+      let host = UIHostingController(
+        rootView: ScrollView { MarkdownView(source: source).padding() }
+          .preferredColorScheme(theme))
+      let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+      window.rootViewController = host
+      window.makeKeyAndVisible()
+      defer { window.isHidden = true }
+      try await Task.sleep(for: .milliseconds(300))
+      host.view.layoutIfNeeded()
+      let image = UIGraphicsImageRenderer(bounds: host.view.bounds).image { _ in
+        host.view.drawHierarchy(in: host.view.bounds, afterScreenUpdates: true)
+      }
+      XCTAssertEqual(image.size.width, 390)
+      let attachment = XCTAttachment(image: image)
+      attachment.name = "Native GFM \(theme)"
+      attachment.lifetime = .keepAlways
+      add(attachment)
+    }
   }
 }
