@@ -5,6 +5,7 @@ import SwiftUI
 
 struct ConversationView: View {
   @Bindable var model: InboxModel
+  @State private var replyIssueID: Int64?
   @State private var filter: Int64?
   @State private var note = ""
   @State private var linkedIssues: Set<Int64> = []
@@ -24,7 +25,8 @@ struct ConversationView: View {
           chip("All (\(model.workspace.unread.count))", id: nil)
           ForEach(model.workspace.issues) { item in
             chip(
-              "#\(item.identity.number)\(item.isUnread && item.monitoring ? " •" : "")", id: item.id
+              "\(item.identity.repository)#\(item.identity.number)\(item.isUnread && item.monitoring ? " •" : "")",
+              id: item.id
             )
           }
         }.padding(8)
@@ -81,6 +83,16 @@ struct ConversationView: View {
       }.padding()
     }
     .navigationTitle("Conversation")
+    .sheet(
+      isPresented: Binding(get: { replyIssueID != nil }, set: { if !$0 { replyIssueID = nil } })
+    ) {
+      if let id = replyIssueID {
+        NavigationStack {
+          IssueDetailView(model: model, id: id)
+            .toolbar { Button("Done") { replyIssueID = nil } }
+        }
+      }
+    }
     .sheet(item: $editingTurn) { turn in
       AssociationEditor(model: model, turn: turn)
     }
@@ -121,7 +133,8 @@ struct ConversationView: View {
         MarkdownView(source: turn.body)
         HStack {
           ForEach(model.workspace.issues.filter { turn.issueIDs.contains($0.id) }) { item in
-            Text("#\(item.identity.number)").foregroundStyle(Self.color(item))
+            Text("\(item.identity.repository)#\(item.identity.number)").foregroundStyle(
+              Self.color(item))
           }
           Spacer()
           Text(turn.createdAt, style: .time).foregroundStyle(.secondary)
@@ -138,7 +151,17 @@ struct ConversationView: View {
             editingTurn = model.workspace.turns.first { $0.id == id }
           }
         }
-        if let source = turn.sourceURL { Link("Open source on GitHub", destination: source) }
+        if let source = turn.sourceURL {
+          Link("Open source on GitHub", destination: source)
+          if let item = model.workspace.issues.first(where: { issue in
+            issue.comments.contains { $0.htmlURL == source }
+          }) {
+            Button("Reply to this comment") {
+              model.selectReply(item.id, source: source)
+              replyIssueID = item.id
+            }.disabled(model.busy || item.writeUnresolved)
+          }
+        }
       }
       if turn.role != .user { Spacer(minLength: 32) }
     }
