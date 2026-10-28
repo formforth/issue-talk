@@ -56,7 +56,7 @@ final class OnDeviceRecognizer {
   private func configureAudio() throws -> SFSpeechAudioBufferRecognitionRequest {
     let audio = AVAudioSession.sharedInstance()
     try audio.setCategory(
-      .playAndRecord, mode: .measurement, options: [.defaultToSpeaker, .allowBluetooth])
+      .playAndRecord, mode: .measurement, options: [.defaultToSpeaker, .allowBluetoothHFP])
     try audio.setActive(true)
     let request = SFSpeechAudioBufferRecognitionRequest()
     request.requiresOnDeviceRecognition = true

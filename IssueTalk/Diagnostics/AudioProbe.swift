@@ -23,7 +23,7 @@
         stop()
         let session = AVAudioSession.sharedInstance()
         try session.setCategory(
-          .playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth])
+          .playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetoothHFP])
         try session.setActive(true)
         let url = probeURL
         let settings: [String: Any] = [
