@@ -142,5 +142,6 @@ if Xcode cannot enable the capability. Personal Team provisioning does not
 provide the App Groups capability: leave these two settings empty to install
 without it. The share sheet then offers Copy Issue URL; paste that canonical URL
 in the app. The main inbox and manual workflow do not require an App Group.
-Simulator CI builds the extension but cannot establish that your team is entitled
-to a physical-device App Group. Verify the configured handoff on your phone.
+Simulator CI builds the extension but cannot establish that your team is
+entitled to a physical-device App Group. Verify the configured handoff on your
+phone.
