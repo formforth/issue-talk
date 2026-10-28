@@ -3,7 +3,7 @@ set -euo pipefail
 model_path=$1
 result_path=$2
 llama-server --model "$model_path" --host 127.0.0.1 --port 8080 \
-  --threads 2 --ctx-size 4096 --parallel 1 > "$result_path.server.log" 2>&1 &
+  --threads 2 --ctx-size 4096 --parallel 1 >"$result_path.server.log" 2>&1 &
 candidate_pid=$!
 trap 'kill "$candidate_pid" 2>/dev/null || true' EXIT
 python - <<'PY'
