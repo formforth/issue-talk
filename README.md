@@ -6,6 +6,9 @@ GitHub login, issue registration, posting, persistence, local inference, and
 voice are tracked in
 [the implementation epic](https://github.com/formforth/issue-talk/issues/1).
 
+For setup, checks, PR conventions, and installing on a personal iPhone, see
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## 1. Development
 
 Use Apple Silicon macOS, Xcode 16 or newer with an iOS 17+ Simulator, and Nix
