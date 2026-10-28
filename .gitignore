@@ -60,3 +60,16 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+# Local tooling and generated build output
+.direnv/
+.pre-commit-config.yaml
+.derivedData/
+DerivedData/
+result
+.swiftpm/
+.env
+.env.*
+*.p12
+*.mobileprovision
+*.xcresult/

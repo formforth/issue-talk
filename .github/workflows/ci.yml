@@ -1,0 +1,153 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install Nix
+        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+        with:
+          github_access_token: ${{ github.token }}
+          nix_conf: |
+            accept-flake-config = true
+            download-buffer-size = 134217728
+      - name: Cache Nix store
+        timeout-minutes: 2
+        continue-on-error: true
+        uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+        with:
+          primary-key: nix-check-gc6g-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('flake.lock') }}
+          restore-prefixes-first-match: nix-check-gc6g-v1-${{ runner.os }}-${{ runner.arch }}-
+          gc-max-store-size-linux: 6G
+      - name: Check Nix configuration boundary
+        run: |
+          test "$(git ls-files '*.nix' | sort)" = flake.nix
+          test -f flake.lock
+      # treefmt-check and pre-commit already cover formatting and offline linters.
+      - name: Run nix flake check
+        run: nix flake check --print-build-logs
+      - name: Run gitleaks history scan
+        run: nix develop .#ci --command gitleaks detect --verbose --redact
+      - name: Report Nix store size before cache save
+        run: du -sh /nix
+
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Boot while caches, lint and the package tests run; do not cache Simulator state.
+      - name: Start iPhone Simulator
+        id: simulator
+        run: |
+          read -r simulator_id simulator_state < <(xcrun simctl list devices available -j | python3 -c '
+          import json, re, sys
+          devices = json.load(sys.stdin)["devices"]
+          runtimes = sorted(
+              (runtime for runtime in devices if ".iOS-" in runtime),
+              key=lambda runtime: tuple(map(int, re.findall(r"\d+", runtime))), reverse=True)
+          phones = [device for runtime in runtimes for device in devices[runtime]
+                    if device["name"].startswith("iPhone") and device.get("isAvailable", False)]
+          if not phones:
+              sys.exit("No available iPhone simulator")
+          print(phones[0]["udid"], phones[0]["state"])
+          ')
+          echo "id=$simulator_id" >> "$GITHUB_OUTPUT"
+          if [[ "$simulator_state" != Booted ]]; then
+            nohup xcrun simctl boot "$simulator_id" > "$RUNNER_TEMP/issue-talk-simulator-boot.log" 2>&1 &
+          fi
+      - name: Identify Apple toolchain
+        id: xcode
+        run: |
+          xcodebuild -version
+          echo "key=$(xcodebuild -version | shasum -a 256 | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+      - name: Cache Swift and Xcode build products
+        timeout-minutes: 2
+        continue-on-error: true
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: |
+            Packages/IssueTalkCore/.build
+            .derivedData/Build
+            .derivedData/ModuleCache.noindex
+            .derivedData/SourcePackages
+          key: ios-build-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.key }}-${{ hashFiles('IssueTalk.xcodeproj/project.pbxproj', '**/Package.swift', '**/Package.resolved') }}-${{ github.sha }}
+          restore-keys: |
+            ios-build-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.key }}-${{ hashFiles('IssueTalk.xcodeproj/project.pbxproj', '**/Package.swift', '**/Package.resolved') }}-
+      - name: Install Nix
+        uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
+        with:
+          github_access_token: ${{ github.token }}
+          extra_nix_config: |
+            accept-flake-config = true
+            download-buffer-size = 134217728
+      - name: Cache Nix store
+        timeout-minutes: 2
+        continue-on-error: true
+        uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+        with:
+          primary-key: nix-hooks-gc6g-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('flake.lock') }}
+          restore-prefixes-first-match: |
+            nix-hooks-gc6g-v1-${{ runner.os }}-${{ runner.arch }}-
+            nix-swiftlint-gc2g-v1-${{ runner.os }}-${{ runner.arch }}-
+          gc-max-store-size-macos: 6G
+      - name: Run SwiftLint pre-commit hook
+        run: nix develop --command pre-commit run --all-files swiftlint
+      - name: Test shared Swift package
+        working-directory: Packages/IssueTalkCore
+        run: swift test
+      - name: Build and test iOS Simulator
+        env:
+          SIMULATOR_ID: ${{ steps.simulator.outputs.id }}
+        run: |
+          xcodebuild test \
+            -project IssueTalk.xcodeproj \
+            -scheme IssueTalk \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
+            -parallel-testing-enabled NO \
+            -derivedDataPath .derivedData \
+            CODE_SIGNING_ALLOWED=NO
+
+  ci:
+    if: always()
+    needs: [check, ios]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require all checks to succeed
+        env:
+          CHECK_RESULT: ${{ needs.check.result }}
+          IOS_RESULT: ${{ needs.ios.result }}
+        run: |
+          test "$CHECK_RESULT" = success
+          test "$IOS_RESULT" = success
