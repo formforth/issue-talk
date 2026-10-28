@@ -118,7 +118,7 @@ struct ConversationView: View {
     HStack {
       if turn.role == .user { Spacer(minLength: 32) }
       VStack(alignment: .leading, spacing: 6) {
-        Text(turn.body).textSelection(.enabled)
+        MarkdownView(source: turn.body)
         HStack {
           ForEach(model.workspace.issues.filter { turn.issueIDs.contains($0.id) }) { item in
             Text("#\(item.identity.number)").foregroundStyle(Self.color(item))

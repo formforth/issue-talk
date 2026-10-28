@@ -162,7 +162,11 @@
             settings.hooks = {
               end-of-file-fixer.enable = true;
               trim-trailing-whitespace.enable = true;
-              check-added-large-files.enable = true;
+              # Pinned offline renderer; its hash and license are verified separately.
+              check-added-large-files = {
+                enable = true;
+                excludes = [ "^IssueTalk/Resources/Renderer/mermaid\\.min\\.js$" ];
+              };
               detect-private-keys.enable = true;
               check-merge-conflicts.enable = true;
               check-json.enable = true;
@@ -205,6 +209,13 @@
                 enable = true;
                 entry = "${pkgs.ruff}/bin/ruff check --fix";
                 types = [ "python" ];
+              };
+              renderer-integrity = {
+                enable = true;
+                name = "pinned offline Mermaid asset";
+                entry = "${pkgs.python3}/bin/python scripts/check_renderer.py";
+                pass_filenames = false;
+                always_run = true;
               };
               treefmt = {
                 enable = true;

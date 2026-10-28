@@ -1,6 +1,7 @@
 import AVFoundation
 import Foundation
 import IssueTalkCore
+import WebKit
 import XCTest
 
 @testable import IssueTalk
@@ -51,5 +52,56 @@ final class IssueTalkTests: XCTestCase {
     try Data("{}".utf8).write(to: directory.appendingPathComponent("invalid.json"))
     XCTAssertThrowsError(try queue.pending())
     XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: directory.path).count, 2)
+  }
+}
+
+// WebKit runs the pinned renderer without access to any remote asset.
+@MainActor
+final class MermaidRenderingTests: XCTestCase {
+  func testFlowchartAndSequenceRenderOfflineWithSnapshot() async throws {
+    let web = try await loadedRenderer()
+    for source in ["flowchart LR\n A --> B", "sequenceDiagram\n Alice->>Bob: Synthetic message"] {
+      let value = try await web.callAsyncJavaScript(
+        "await window.renderDiagram(source, dark); return document.querySelector('#diagram svg') !== null;",
+        arguments: ["source": source, "dark": true], in: nil, contentWorld: .page)
+      XCTAssertEqual(value as? Bool, true)
+    }
+    let image = try await web.takeSnapshot(configuration: nil)
+    XCTAssertGreaterThan(image.size.width, 0)
+    let attachment = XCTAttachment(image: image)
+    attachment.name = "Offline Mermaid sequence, dark mode"
+    attachment.lifetime = .keepAlways
+    add(attachment)
+  }
+
+  func testDiagramConfigurationInjectionAndInvalidSyntaxFail() async throws {
+    let web = try await loadedRenderer()
+    for source in ["%%{init: {securityLevel: 'loose'}}%%\nflowchart LR\n A-->B", "not a diagram"] {
+      do {
+        _ = try await web.callAsyncJavaScript(
+          "return await window.renderDiagram(source, false);",
+          arguments: ["source": source], in: nil, contentWorld: .page)
+        XCTFail("Untrusted or invalid source must fail")
+      } catch { /* The UI shows the original source on render errors. */  }
+    }
+  }
+
+  private func loadedRenderer() async throws -> WKWebView {
+    let config = WKWebViewConfiguration()
+    config.websiteDataStore = .nonPersistent()
+    let web = WKWebView(frame: CGRect(x: 0, y: 0, width: 390, height: 300), configuration: config)
+    let index = try XCTUnwrap(
+      Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "Renderer"))
+    web.loadFileURL(index, allowingReadAccessTo: index.deletingLastPathComponent())
+    for _ in 0..<100 {
+      if let ready = try? await web.evaluateJavaScript(
+        "typeof window.renderDiagram === 'function' && typeof mermaid !== 'undefined'"),
+        ready as? Bool == true
+      {
+        return web
+      }
+      try await Task.sleep(for: .milliseconds(100))
+    }
+    throw NSError(domain: "RendererNotReady", code: 1)
   }
 }

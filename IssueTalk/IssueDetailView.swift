@@ -12,13 +12,13 @@ struct IssueDetailView: View {
       List {
         Section {
           Text(item.metadata.title).font(.headline)
-          Text(item.metadata.body ?? "").textSelection(.enabled)
+          MarkdownView(source: item.metadata.body ?? "")
           Link("Open Issue on GitHub", destination: item.identity.url)
         }
         Section("Comments — tap Reply to select the source") {
           ForEach(item.comments) { comment in
             VStack(alignment: .leading, spacing: 8) {
-              Text(comment.body).textSelection(.enabled)
+              MarkdownView(source: comment.body)
               HStack {
                 Link("GitHub", destination: comment.htmlURL)
                 Spacer()
