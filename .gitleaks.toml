@@ -1,0 +1,9 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Mermaid's minified atlas-count assignment is not a credential"
+condition = "AND"
+paths = ['''^IssueTalk/Resources/Renderer/mermaid\.min\.js$''']
+regexTarget = "secret"
+regexes = ['''^v=m\.atlasCount$''']
