@@ -79,11 +79,15 @@ struct MermaidWebView: UIViewRepresentable {
       let key = "\(dark):\(source)"
       guard loaded, rendered != key else { return }
       rendered = key
-      web.callAsyncJavaScript(
-        "return await window.renderDiagram(source, dark);",
-        arguments: ["source": source, "dark": dark], in: nil, contentWorld: .page
-      ) { [weak self] result in
-        if case .failure = result, self?.rendered == key { self?.failed.wrappedValue = true }
+      Task { @MainActor [weak self, weak web] in
+        guard let web else { return }
+        do {
+          _ = try await web.callAsyncJavaScript(
+            "return await window.renderDiagram(source, dark);",
+            arguments: ["source": source, "dark": dark], in: nil, contentWorld: .page)
+        } catch {
+          if self?.rendered == key { self?.failed.wrappedValue = true }
+        }
       }
     }
 
