@@ -59,6 +59,20 @@ final class IssueTalkTests: XCTestCase {
 // WebKit runs the pinned renderer without access to any remote asset.
 @MainActor
 final class MermaidRenderingTests: XCTestCase {
+  func testNavigationDelegateMatchesSDKAndConfinesFiles() throws {
+    let coordinator = MermaidWebView.Coordinator(failed: .constant(false))
+    let index = try XCTUnwrap(
+      Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "Renderer"))
+    coordinator.rendererURL = index
+    XCTAssertTrue(
+      coordinator.responds(
+        to: #selector(WKNavigationDelegate.webView(_:decidePolicyFor:decisionHandler:))))
+    XCTAssertTrue(coordinator.allowsNavigation(to: index))
+    XCTAssertFalse(coordinator.allowsNavigation(to: URL(string: "https://example.com/index.html")))
+    XCTAssertFalse(coordinator.allowsNavigation(to: URL(fileURLWithPath: "/tmp/index.html")))
+    XCTAssertFalse(coordinator.allowsNavigation(to: nil))
+  }
+
   func testFlowchartAndSequenceRenderOfflineWithSnapshot() async throws {
     let web = try await loadedRenderer()
     for source in ["flowchart LR\n A --> B", "sequenceDiagram\n Alice->>Bob: Synthetic message"] {

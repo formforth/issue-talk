@@ -51,6 +51,7 @@ struct MermaidWebView: UIViewRepresentable {
     if let index = Bundle.main.url(
       forResource: "index", withExtension: "html", subdirectory: "Renderer")
     {
+      context.coordinator.rendererURL = index
       web.loadFileURL(index, allowingReadAccessTo: index.deletingLastPathComponent())
     } else {
       context.coordinator.failed.wrappedValue = true
@@ -64,6 +65,7 @@ struct MermaidWebView: UIViewRepresentable {
 
   @MainActor final class Coordinator: NSObject, WKNavigationDelegate {
     var failed: Binding<Bool>
+    var rendererURL: URL?
     private var loaded = false
     private var source = ""
     private var dark = false
@@ -92,11 +94,22 @@ struct MermaidWebView: UIViewRepresentable {
 
     func webView(
       _ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
-      decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+      decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void
     ) {
-      let url = action.request.url
-      decisionHandler(
-        url?.isFileURL == true && url?.lastPathComponent == "index.html" ? .allow : .cancel)
+      decisionHandler(allowsNavigation(to: action.request.url) ? .allow : .cancel)
+    }
+
+    func allowsNavigation(to url: URL?) -> Bool {
+      url != nil && url == rendererURL
+    }
+
+    func webView(
+      _ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!,
+      withError error: Error
+    ) { failed.wrappedValue = true }
+
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+      failed.wrappedValue = true
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
