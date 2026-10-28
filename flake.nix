@@ -88,6 +88,7 @@
             [
               gh
               pre-commit
+              python3
               swift-format
             ]
             ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isDarwin [ pkgs.swiftlint ];
@@ -101,7 +102,16 @@
               '';
             };
             ci = pkgs.mkShellNoCC {
-              packages = [ pkgs.gitleaks ];
+              packages = [
+                pkgs.gitleaks
+                pkgs.python3
+              ];
+            };
+            broker = pkgs.mkShellNoCC {
+              packages = [
+                pkgs.python3
+                pkgs.python3Packages.gunicorn
+              ];
             };
           };
 
@@ -116,6 +126,11 @@
             };
             settings = {
               formatter = {
+                python = {
+                  command = "${pkgs.ruff}/bin/ruff";
+                  options = [ "format" ];
+                  includes = [ "*.py" ];
+                };
                 swift = {
                   command = "${pkgs.swift-format}/bin/swift-format";
                   options = [
@@ -146,8 +161,16 @@
             check.enable = true;
             settings.hooks = {
               end-of-file-fixer.enable = true;
-              trim-trailing-whitespace.enable = true;
-              check-added-large-files.enable = true;
+              # Preserve the exact upstream bytes, including whitespace inside JS templates.
+              trim-trailing-whitespace = {
+                enable = true;
+                excludes = [ "^IssueTalk/Resources/Renderer/mermaid\\.min\\.js$" ];
+              };
+              # Pinned offline renderer; its hash and license are verified separately.
+              check-added-large-files = {
+                enable = true;
+                excludes = [ "^IssueTalk/Resources/Renderer/mermaid\\.min\\.js$" ];
+              };
               detect-private-keys.enable = true;
               check-merge-conflicts.enable = true;
               check-json.enable = true;
@@ -186,6 +209,18 @@
                 types = [ "markdown" ];
               };
               shellcheck.enable = true;
+              ruff-check = {
+                enable = true;
+                entry = "${pkgs.ruff}/bin/ruff check --fix";
+                types = [ "python" ];
+              };
+              renderer-integrity = {
+                enable = true;
+                name = "pinned offline Mermaid asset";
+                entry = "${pkgs.python3}/bin/python scripts/check_renderer.py";
+                pass_filenames = false;
+                always_run = true;
+              };
               treefmt = {
                 enable = true;
                 entry = "${treefmtRun}";

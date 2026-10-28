@@ -1,0 +1,7 @@
+ISSUE_TALK_BUNDLE_ID = org.formforth.issue-talk
+GITHUB_OAUTH_CLIENT_ID =
+GITHUB_OAUTH_BROKER_URL =
+ISSUE_TALK_APP_GROUP =
+ISSUE_TALK_SHARED_ENTITLEMENTS =
+// Developer-specific signing settings stay out of git.
+#include? "Local.xcconfig"

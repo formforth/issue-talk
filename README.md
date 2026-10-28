@@ -1,14 +1,17 @@
 # Issue Talk
 
-A SwiftUI iPhone app for a hands-free GitHub Issue inbox. The initial build
-contains an empty inbox, settings navigation, and an independent Swift package.
+A SwiftUI iPhone app for a hands-free GitHub Issue inbox. The app includes
+an Issue list, comment reader, explicit reply composer, and a SwiftPM core.
 GitHub login, issue registration, posting, persistence, local inference, and
 voice are tracked in
 [the implementation epic](https://github.com/formforth/issue-talk/issues/1).
 
+For setup, checks, PR conventions, and installing on a personal iPhone, see
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## 1. Development
 
-Use Apple Silicon macOS, Xcode 16 or newer with an iOS 17+ Simulator, and Nix
+Use Apple Silicon macOS, Xcode 26 or newer with an iOS 17+ Simulator, and Nix
 with flakes enabled. Xcode supplies the compiler, Apple SDK, simulators, and
 signing. Nix supplies linting and development tools.
 
@@ -84,3 +87,9 @@ Physical-device launch, locked-screen audio, background execution, inference
 latency, and battery behavior require an iPhone; see issue #3. Simulator success
 does not establish those capabilities. No OAuth secrets or private issue content
 belong in this public repository.
+
+See [conversation and inbox behavior](docs/CONVERSATION.md) for local history,
+monitoring, polling and speech-completion read receipts.
+
+See [local voice and inference](docs/LOCAL-VOICE.md) for eligible-device
+requirements and foreground voice/manual fallbacks.
