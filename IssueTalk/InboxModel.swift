@@ -8,6 +8,8 @@ final class InboxModel {
   private(set) var authenticated = false
   private(set) var busy = false
   var message: String?
+  private(set) var pollStatus = "Not refreshed yet"
+  private var nextPoll = Date.distantPast
   private var storageFailed = false
   private let store: WorkspaceStore?
   private let account = GitHubSession()
@@ -69,13 +71,20 @@ final class InboxModel {
       async let comments = client.comments(identity)
       let item = try await MonitoredIssue(
         identity: identity, metadata: metadata, comments: comments)
-      guard !workspace.issues.contains(where: { $0.id == item.id || $0.identity == identity })
-      else {
-        message = "This Issue is already registered."
-        return nil
-      }
       var updated = workspace
-      updated.issues.append(item)
+      if let index = updated.issues.firstIndex(where: {
+        $0.id == item.id || $0.identity == identity
+      }) {
+        guard !updated.issues[index].monitoring else {
+          message = "This Issue is already registered."
+          return nil
+        }
+        updated.issues[index].monitoring = true
+        updated.issues[index].metadata = item.metadata
+        updated.issues[index].comments = item.comments
+      } else {
+        updated.issues.append(item)
+      }
       try commit(updated)
       return item.id
     } catch {
@@ -99,6 +108,75 @@ final class InboxModel {
         $0.comments = result.1
       }
     } catch { await reportRequestError(error) }
+  }
+
+}
+
+extension InboxModel {
+  func setMonitoring(_ id: Int64, enabled: Bool) {
+    guard !busy else { return }
+    do { try update(id) { $0.monitoring = enabled } } catch { report(error) }
+  }
+
+  func addNote(_ text: String, issueIDs: Set<Int64>) {
+    do {
+      var updated = workspace
+      try updated.appendTurn(ConversationTurn(role: .user, body: text, issueIDs: issueIDs))
+      try commit(updated)
+    } catch { report(error) }
+  }
+
+  func correctLinks(_ turnID: UUID, issueIDs: Set<Int64>) {
+    do {
+      var updated = workspace
+      try updated.correctLinks(turnID: turnID, issueIDs: issueIDs)
+      try commit(updated)
+    } catch { report(error) }
+  }
+
+  func saveContextSummary(_ text: String) {
+    do {
+      var updated = workspace
+      updated.contextSummary = String(text.prefix(8_000))
+      try commit(updated)
+    } catch { report(error) }
+  }
+
+  func completeReading(_ session: ReadingSession) {
+    do {
+      var updated = workspace
+      try updated.completeReading(session)
+      try commit(updated)
+    } catch { report(error) }
+  }
+
+  func pollIfNeeded(force: Bool = false) async {
+    guard !busy, authenticated, force || Date() >= nextPoll else { return }
+    nextPoll = Date().addingTimeInterval(60)
+    busy = true
+    defer { busy = false }
+    for item in workspace.monitored {
+      guard !Task.isCancelled else { return }
+      do {
+        async let metadata = client.issue(item.identity)
+        async let comments = client.comments(item.identity)
+        let result = try await (metadata, comments)
+        try update(item.id) {
+          $0.metadata = result.0
+          $0.comments = result.1
+        }
+      } catch {
+        pollStatus = "Refresh paused. Use Refresh to retry."
+        nextPoll = Date().addingTimeInterval(300)
+        if error as? IssueTalkError == .authenticationRequired {
+          await reportRequestError(error)
+        } else if force {
+          report(error)
+        }
+        return
+      }
+    }
+    pollStatus = "Updated at \(Date().formatted(date: .omitted, time: .shortened))"
   }
 
   func edit(_ id: Int64, draft: String) {
@@ -139,7 +217,12 @@ final class InboxModel {
         $0.operationID = nil
         $0.writeUnresolved = false
       }
-      message = "Comment posted to GitHub."
+      var updated = workspace
+      try updated.appendTurn(
+        ConversationTurn(
+          role: .event, body: "Posted to \(comment.htmlURL.absoluteString)", issueIDs: [id]))
+      try commit(updated)
+      message = "Comment posted to GitHub. \(workspace.unread.count) unread Issues remain."
     } catch {
       if Self.rejectedWrite(error) {
         try? update(id) {

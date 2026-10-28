@@ -65,11 +65,6 @@ public struct OAuthTokens: Codable, Sendable {
   }
 }
 
-public struct Workspace: Codable, Sendable {
-  public var issues: [MonitoredIssue] = []
-  public init() {}
-}
-
 public struct MonitoredIssue: Codable, Identifiable, Sendable {
   public var id: Int64 { metadata.id }
   public let identity: IssueIdentity
@@ -81,11 +76,32 @@ public struct MonitoredIssue: Codable, Identifiable, Sendable {
   /// Persisted before dispatch. After a restart, an unresolved write is never auto-retried.
   public var writeUnresolved = false
   public var postedCommentURL: URL?
+  public var monitoring = true
+  public var readCursor: ReadCursor?
 
   public init(identity: IssueIdentity, metadata: GitHubIssue, comments: [GitHubComment]) {
     self.identity = identity
     self.metadata = metadata
     self.comments = comments
+  }
+
+  enum CodingKeys: String, CodingKey {
+    case identity, metadata, comments, draft, replySource, operationID, writeUnresolved
+    case postedCommentURL, monitoring, readCursor
+  }
+
+  public init(from decoder: any Decoder) throws {
+    let values = try decoder.container(keyedBy: CodingKeys.self)
+    identity = try values.decode(IssueIdentity.self, forKey: .identity)
+    metadata = try values.decode(GitHubIssue.self, forKey: .metadata)
+    comments = try values.decode([GitHubComment].self, forKey: .comments)
+    draft = try values.decodeIfPresent(String.self, forKey: .draft) ?? ""
+    replySource = try values.decodeIfPresent(URL.self, forKey: .replySource)
+    operationID = try values.decodeIfPresent(UUID.self, forKey: .operationID)
+    writeUnresolved = try values.decodeIfPresent(Bool.self, forKey: .writeUnresolved) ?? false
+    postedCommentURL = try values.decodeIfPresent(URL.self, forKey: .postedCommentURL)
+    monitoring = try values.decodeIfPresent(Bool.self, forKey: .monitoring) ?? true
+    readCursor = try values.decodeIfPresent(ReadCursor.self, forKey: .readCursor)
   }
 
   public func commentBody() throws -> String {

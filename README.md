@@ -87,3 +87,6 @@ Physical-device launch, locked-screen audio, background execution, inference
 latency, and battery behavior require an iPhone; see issue #3. Simulator success
 does not establish those capabilities. No OAuth secrets or private issue content
 belong in this public repository.
+
+See [conversation and inbox behavior](docs/CONVERSATION.md) for local history,
+monitoring, polling and speech-completion read receipts.

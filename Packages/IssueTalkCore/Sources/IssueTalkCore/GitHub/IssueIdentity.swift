@@ -59,11 +59,13 @@ public struct GitHubIssue: Codable, Equatable, Sendable {
   public let body: String?
   public let htmlURL: URL
   public let updatedAt: Date
+  public let createdAt: Date?
 
   enum CodingKeys: String, CodingKey {
     case id, number, title, body
     case htmlURL = "html_url"
     case updatedAt = "updated_at"
+    case createdAt = "created_at"
   }
 }
 
