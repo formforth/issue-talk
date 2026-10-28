@@ -106,7 +106,9 @@ final class MermaidRenderingTests: XCTestCase {
           "return await window.renderDiagram(source, false);",
           arguments: ["source": source], in: nil, contentWorld: .page)
         XCTFail("Untrusted or invalid source must fail")
-      } catch { /* The UI shows the original source on render errors. */  }
+      } catch {
+        // The UI shows the original source on render errors.
+      }
     }
   }
 

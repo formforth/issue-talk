@@ -37,7 +37,9 @@ struct InferenceTelemetry {
       var values = URLResourceValues()
       values.isExcludedFromBackup = true
       try excluded.setResourceValues(values)
-    } catch { /* Diagnostics must never prevent a manual workflow or expose input. */  }
+    } catch {
+      // Diagnostics must never prevent a manual workflow or expose input.
+    }
   }
 
   static func clear() {
