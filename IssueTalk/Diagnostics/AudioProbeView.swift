@@ -28,13 +28,17 @@
       }
       .navigationTitle("Audio feasibility")
       .onChange(of: scenePhase) { _, phase in probe.log("Scene: \(String(describing: phase))") }
-      .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.interruptionNotification))
-      { _ in
+      .onReceive(
+        NotificationCenter.default.publisher(for: AVAudioSession.interruptionNotification).receive(
+          on: RunLoop.main)
+      ) { _ in
         probe.stop()
         probe.log("Audio interruption; session stopped. Restart explicitly.")
       }
-      .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification))
-      { _ in
+      .onReceive(
+        NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification).receive(
+          on: RunLoop.main)
+      ) { _ in
         probe.log("Audio route changed.")
       }
       .onDisappear { probe.clear() }
