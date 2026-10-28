@@ -66,3 +66,7 @@ publication.
 Device memory, power, battery and locked-screen results remain unmeasured until
 the feasibility protocol is performed. Publish only synthetic/non-identifying
 results, with the environment and limitations stated.
+
+The normal CI workflow retains Simulator xcresult bundles, including synthetic
+GFM/Mermaid snapshot attachments, for seven days. These provide visual review
+evidence alongside the deterministic assertions; no private app data is used.

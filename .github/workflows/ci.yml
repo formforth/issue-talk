@@ -147,6 +147,14 @@ jobs:
             -maximum-test-execution-time-allowance 120 \
             -derivedDataPath .derivedData \
             CODE_SIGNING_ALLOWED=NO
+      - name: Retain Simulator test results and synthetic snapshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: simulator-test-results
+          path: .derivedData/Logs/Test/*.xcresult
+          if-no-files-found: ignore
+          retention-days: 7
 
   ci:
     if: always()
