@@ -11,7 +11,7 @@ For setup, checks, PR conventions, and installing on a personal iPhone, see
 
 ## 1. Development
 
-Use Apple Silicon macOS, Xcode 16 or newer with an iOS 17+ Simulator, and Nix
+Use Apple Silicon macOS, Xcode 26 or newer with an iOS 17+ Simulator, and Nix
 with flakes enabled. Xcode supplies the compiler, Apple SDK, simulators, and
 signing. Nix supplies linting and development tools.
 
@@ -90,3 +90,6 @@ belong in this public repository.
 
 See [conversation and inbox behavior](docs/CONVERSATION.md) for local history,
 monitoring, polling and speech-completion read receipts.
+
+See [local voice and inference](docs/LOCAL-VOICE.md) for eligible-device
+requirements and foreground voice/manual fallbacks.
