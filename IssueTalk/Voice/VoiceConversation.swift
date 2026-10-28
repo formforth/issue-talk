@@ -93,7 +93,7 @@ final class VoiceConversation {
         + $0.comments.suffix(10).map { $0.htmlURL.absoluteString }.joined(separator: " ")
     }.joined(separator: "\n")
     let context =
-      String(anchors.prefix(4_000)) + "\n" + model.workspace.context(maxCharacters: 4_000)
+      String(anchors.prefix(4_000)) + "\n" + model.workspace.inferenceContext(maxCharacters: 4_000)
     let urls = model.workspace.monitored.map { $0.identity.url.absoluteString }
     let started = ContinuousClock.now
     inferenceTask = Task {

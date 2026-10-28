@@ -63,7 +63,7 @@ func makeLocalInference() -> any LocalInferenceEngine {
 }
 
 enum LocalPrompt {
-  static let version = "foundation-routing-v1"
+  static let version = "foundation-routing-v2"
   static let instructions = """
     You help discuss GitHub Issues. Return a suggestion only; you cannot post or authorize writes.
     Classify the user's latest message as chat, readNext, switchIssue, or draft.

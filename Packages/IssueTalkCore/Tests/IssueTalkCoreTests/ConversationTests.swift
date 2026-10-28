@@ -4,14 +4,16 @@ import Testing
 @testable import IssueTalkCore
 
 struct ConversationTests {
-  private func item(id: Int64 = 100, number: Int64 = 1) throws -> MonitoredIssue {
+  private func item(id: Int64 = 100, number: Int64 = 1, body: String = "Original") throws
+    -> MonitoredIssue
+  {
     let decoder = JSONDecoder()
     decoder.dateDecodingStrategy = .iso8601
     let issue = try decoder.decode(
       GitHubIssue.self,
       from: Data(
         """
-        {"id":\(id),"number":\(number),"title":"Synthetic issue","body":"Original",
+        {"id":\(id),"number":\(number),"title":"Synthetic issue","body":"\(body)",
         "html_url":"https://github.com/test/repo/issues/\(number)","updated_at":"2026-01-01T00:00:00Z"}
         """.utf8))
     return try MonitoredIssue(
@@ -90,6 +92,29 @@ struct ConversationTests {
     let restored = try JSONDecoder().decode(Workspace.self, from: JSONEncoder().encode(workspace))
     #expect(restored.turns.count == 2)
     #expect(restored.issues[0].colorIndex == workspace.issues[0].colorIndex)
+  }
+
+  @Test func inferenceContextQuotesOnlySelectedSourcesWithinItsBudget() throws {
+    var workspace = Workspace()
+    workspace.issues = [try item(), try item(id: 200, number: 2, body: "Unrelated cached content")]
+    workspace.discussionIssueID = 100
+    let source = try comment(id: 10)
+    workspace.issues[0].comments = [source]
+    workspace.issues[0].replySource = source.htmlURL
+    try workspace.appendTurn(
+      ConversationTurn(role: .user, body: "Latest local discussion", issueIDs: [100]))
+    let context = workspace.inferenceContext(maxCharacters: 1_000)
+    #expect(context.contains("Original"))
+    #expect(context.contains(source.htmlURL.absoluteString))
+    #expect(context.contains("Synthetic update"))
+    #expect(context.contains("Latest local discussion"))
+    #expect(!context.contains("Unrelated cached content"))
+    #expect(context.count <= 1_000)
+    #expect(workspace.inferenceContext(maxCharacters: 0).isEmpty)
+    try workspace.appendTurn(
+      ConversationTurn(role: .user, body: String(repeating: "latest", count: 1_000)))
+    #expect(workspace.context(maxCharacters: 100).hasPrefix("user: latest"))
+    #expect(workspace.context(maxCharacters: 100).count <= 100)
   }
 
   @Test func contextIsBoundedWithoutDeletingHistory() throws {

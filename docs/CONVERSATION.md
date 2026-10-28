@@ -45,3 +45,10 @@ Content arriving while speech is running remains unread after that reading ends.
 The next Issue is selected only on another explicit request. Read receipts and
 completed-reading turns are saved atomically. Physical-device speech/lifecycle
 behavior remains subject to the feasibility protocol.
+
+The inference context quotes the explicitly selected Issue body, selected reply
+source and recent comments within its source budget, then adds recent local
+turns and any fitting saved summary. Unrelated cached Issue bodies are not
+implicitly copied into that source context. Oversized latest turns are bounded
+rather than dropping all recent context. The visible filter does not select
+inference context or posting authority.
