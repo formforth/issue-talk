@@ -104,7 +104,9 @@ public actor GitHubClient {
 
   private func request(_ url: URL) async throws -> URLRequest {
     let accessToken = try await token()
-    guard !accessToken.isEmpty else { throw IssueTalkError.authenticationRequired }
+    guard !accessToken.isEmpty, accessToken.utf8.count <= 2048,
+      accessToken.utf8.allSatisfy({ (33...126).contains($0) })
+    else { throw IssueTalkError.authenticationRequired }
     var request = URLRequest(url: url)
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
     request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")

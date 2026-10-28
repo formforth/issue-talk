@@ -75,3 +75,6 @@ result
 *.xcresult/
 Configuration/Local.xcconfig
 *.m4a
+
+__pycache__/
+.ruff_cache/

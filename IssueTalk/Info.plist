@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+  <key>GitHubOAuthClientID</key><string>$(GITHUB_OAUTH_CLIENT_ID)</string>
+  <key>GitHubOAuthBrokerURL</key><string>$(GITHUB_OAUTH_BROKER_URL)</string>
+  <key>CFBundleURLTypes</key>
+  <array><dict><key>CFBundleURLSchemes</key><array><string>issuetalk</string></array></dict></array>
   <key>NSMicrophoneUsageDescription</key>
   <string>Record an audio feasibility test that stays on your iPhone.</string>
   <key>UIBackgroundModes</key>

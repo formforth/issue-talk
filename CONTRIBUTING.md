@@ -72,6 +72,9 @@ Issue content. Review `git diff` before committing, especially after changing
 signing in Xcode. The project has an audio background capability for active
 audio feasibility testing; it does not grant unrestricted background execution.
 
+For GitHub sign-in, deploy/configure the token broker and OAuth App using
+[docs/OAUTH.md](docs/OAUTH.md). The microphone probe works without that setup.
+
 ## 3. Local Checks
 
 Follow the same Nix/pre-commit conventions as `i9wa4/dotfiles` and

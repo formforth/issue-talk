@@ -1,3 +1,8 @@
 // Copy to Local.xcconfig, then replace these example values.
 DEVELOPMENT_TEAM = YOUR_TEAM_ID
 ISSUE_TALK_BUNDLE_ID = com.example.issuetalk.personal
+
+// Public client ID only. Never put the client secret in any app configuration.
+GITHUB_OAUTH_CLIENT_ID = YOUR_OAUTH_APP_CLIENT_ID
+// xcconfig treats // as a comment, so construct the HTTPS URL this way.
+GITHUB_OAUTH_BROKER_URL = https:/$()/oauth.example.com
