@@ -35,8 +35,9 @@ final class ReadingSpeaker: NSObject, AVSpeechSynthesizerDelegate {
     _ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance
   ) {
     // AVSpeech delegate callbacks arrive on the main thread, but the protocol is nonisolated.
+    let identifier = ObjectIdentifier(utterance)
     MainActor.assumeIsolated {
-      guard self.utterance === utterance else { return }
+      guard self.utterance.map(ObjectIdentifier.init) == identifier else { return }
       let finished = completion
       stop()
       finished?()
@@ -46,8 +47,9 @@ final class ReadingSpeaker: NSObject, AVSpeechSynthesizerDelegate {
   nonisolated func speechSynthesizer(
     _ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance
   ) {
+    let identifier = ObjectIdentifier(utterance)
     MainActor.assumeIsolated {
-      if self.utterance === utterance { stop() }
+      if self.utterance.map(ObjectIdentifier.init) == identifier { stop() }
     }
   }
 }
