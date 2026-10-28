@@ -1,0 +1,3 @@
+ISSUE_TALK_BUNDLE_ID = org.formforth.issue-talk
+// Developer-specific signing settings stay out of git.
+#include? "Local.xcconfig"

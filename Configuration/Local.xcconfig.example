@@ -1,0 +1,3 @@
+// Copy to Local.xcconfig, then replace these example values.
+DEVELOPMENT_TEAM = YOUR_TEAM_ID
+ISSUE_TALK_BUNDLE_ID = com.example.issuetalk.personal

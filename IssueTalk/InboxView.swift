@@ -13,6 +13,11 @@ struct InboxView: View {
       .toolbar {
         NavigationLink {
           List {
+            #if DEBUG
+              Section("Diagnostics") {
+                NavigationLink("Audio feasibility") { AudioProbeView() }
+              }
+            #endif
             Section("About") {
               Text("A hands-free GitHub Issue inbox")
               Text("GitHub login and issue registration are not available in this initial build.")
