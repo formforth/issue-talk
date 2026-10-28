@@ -59,6 +59,7 @@ final class IssueTalkTests: XCTestCase {
 // WebKit runs the pinned renderer without access to any remote asset.
 @MainActor
 final class MermaidRenderingTests: XCTestCase {
+  private var rendererHost: SnapshotWindowHost?
   func testNavigationDelegateMatchesSDKAndConfinesFiles() throws {
     let coordinator = MermaidWebView.Coordinator(failed: .constant(false))
     let index = try XCTUnwrap(
@@ -74,6 +75,10 @@ final class MermaidRenderingTests: XCTestCase {
   }
 
   func testFlowchartAndSequenceRenderOfflineWithSnapshot() async throws {
+    defer {
+      rendererHost?.close()
+      rendererHost = nil
+    }
     let web = try await loadedRenderer()
     for source in ["flowchart LR\n A --> B", "sequenceDiagram\n Alice->>Bob: Synthetic message"] {
       let value = try await web.callAsyncJavaScript(
@@ -90,6 +95,10 @@ final class MermaidRenderingTests: XCTestCase {
   }
 
   func testDiagramConfigurationInjectionAndInvalidSyntaxFail() async throws {
+    defer {
+      rendererHost?.close()
+      rendererHost = nil
+    }
     let web = try await loadedRenderer()
     for source in ["%%{init: {securityLevel: 'loose'}}%%\nflowchart LR\n A-->B", "not a diagram"] {
       do {
@@ -107,6 +116,9 @@ final class MermaidRenderingTests: XCTestCase {
     let web = WKWebView(frame: CGRect(x: 0, y: 0, width: 390, height: 300), configuration: config)
     let index = try XCTUnwrap(
       Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "Renderer"))
+    let controller = UIViewController()
+    controller.view = web
+    rendererHost = SnapshotWindowHost(controller: controller, frame: web.frame)
     web.loadFileURL(index, allowingReadAccessTo: index.deletingLastPathComponent())
     for _ in 0..<100 {
       if let ready = try? await web.evaluateJavaScript(
@@ -145,14 +157,13 @@ final class MarkdownSnapshotTests: XCTestCase {
       let host = UIHostingController(
         rootView: ScrollView { MarkdownView(source: source).padding() }
           .preferredColorScheme(theme))
-      let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
-      window.rootViewController = host
-      window.makeKeyAndVisible()
-      defer { window.isHidden = true }
+      let bounds = CGRect(x: 0, y: 0, width: 390, height: 844)
+      let window = SnapshotWindowHost(controller: host, frame: bounds)
+      defer { window.close() }
       try await Task.sleep(for: .milliseconds(300))
       host.view.layoutIfNeeded()
-      let image = UIGraphicsImageRenderer(bounds: host.view.bounds).image { _ in
-        host.view.drawHierarchy(in: host.view.bounds, afterScreenUpdates: true)
+      let image = UIGraphicsImageRenderer(bounds: bounds).image { _ in
+        host.view.drawHierarchy(in: bounds, afterScreenUpdates: true)
       }
       XCTAssertEqual(image.size.width, 390)
       let attachment = XCTAttachment(image: image)
@@ -160,5 +171,29 @@ final class MarkdownSnapshotTests: XCTestCase {
       attachment.lifetime = .keepAlways
       add(attachment)
     }
+  }
+}
+
+/// Keep WebKit onscreen and restore the app's key window between snapshot tests.
+@MainActor
+private final class SnapshotWindowHost {
+  private let window: UIWindow
+  private weak var originalWindow: UIWindow?
+
+  init(controller: UIViewController, frame: CGRect) {
+    let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+    let original = scenes.flatMap(\.windows).first(where: \.isKeyWindow)
+    window = UIWindow(frame: frame)
+    window.windowScene = original?.windowScene ?? scenes.first
+    window.frame = frame
+    window.rootViewController = controller
+    originalWindow = original
+    window.makeKeyAndVisible()
+    controller.view.layoutIfNeeded()
+  }
+
+  func close() {
+    window.isHidden = true
+    originalWindow?.makeKeyAndVisible()
   }
 }

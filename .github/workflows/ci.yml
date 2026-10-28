@@ -60,7 +60,7 @@ jobs:
 
   ios:
     runs-on: macos-15
-    timeout-minutes: 20
+    timeout-minutes: 25
     permissions:
       contents: read
     steps:
@@ -142,6 +142,9 @@ jobs:
             -scheme IssueTalk \
             -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
             -parallel-testing-enabled NO \
+            -test-timeouts-enabled YES \
+            -default-test-execution-time-allowance 60 \
+            -maximum-test-execution-time-allowance 120 \
             -derivedDataPath .derivedData \
             CODE_SIGNING_ALLOWED=NO
 
