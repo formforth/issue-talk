@@ -11,6 +11,8 @@ let package = Package(
   targets: [
     .target(
       name: "IssueTalkCore", dependencies: [.product(name: "Markdown", package: "swift-markdown")]),
-    .testTarget(name: "IssueTalkCoreTests", dependencies: ["IssueTalkCore"]),
+    .testTarget(
+      name: "IssueTalkCoreTests", dependencies: ["IssueTalkCore"], resources: [.process("Fixtures")]
+    ),
   ]
 )

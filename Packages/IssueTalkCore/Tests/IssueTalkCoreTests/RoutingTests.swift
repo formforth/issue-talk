@@ -23,6 +23,16 @@ struct RoutingTests {
     return workspace
   }
 
+  @Test func labeledCommandRegressionDatasetHasNoFalsePositiveWrites() throws {
+    struct Example: Decodable {
+      let text: String
+      let expected: VoiceCommand
+    }
+    let url = try #require(Bundle.module.url(forResource: "commands", withExtension: "json"))
+    let examples = try JSONDecoder().decode([Example].self, from: Data(contentsOf: url))
+    for example in examples { #expect(VoiceCommand.parse(example.text) == example.expected) }
+  }
+
   @Test func inferenceCannotInventTargetsSourcesOrAuthorizeWrites() throws {
     let workspace = try workspace()
     for (url, source) in [

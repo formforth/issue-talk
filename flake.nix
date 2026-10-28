@@ -107,6 +107,12 @@
                 pkgs.python3
               ];
             };
+            eval = pkgs.mkShellNoCC {
+              packages = [
+                pkgs.python3
+                pkgs.llama-cpp
+              ];
+            };
             broker = pkgs.mkShellNoCC {
               packages = [
                 pkgs.python3

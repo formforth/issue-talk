@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
   @Bindable var model: InboxModel
+  @State private var telemetryEnabled = InferenceTelemetry.enabled
 
   var body: some View {
     List {
@@ -21,6 +22,18 @@ struct SettingsView: View {
           NavigationLink("Audio feasibility") { AudioProbeView() }
         }
       #endif
+      Section("Local inference diagnostics") {
+        Toggle("Record inference metadata", isOn: $telemetryEnabled)
+          .onChange(of: telemetryEnabled) { _, enabled in InferenceTelemetry.enabled = enabled }
+        Text(
+          """
+          Off by default. Keeps at most 100 local timing/outcome records,
+          without conversation text or Issue identifiers.
+          """
+        )
+        .font(.caption)
+        Button("Delete inference metadata", role: .destructive) { InferenceTelemetry.clear() }
+      }
       Section("About") {
         Text("A hands-free GitHub Issue inbox")
         Text(

@@ -95,10 +95,12 @@ final class VoiceConversation {
     let context =
       String(anchors.prefix(4_000)) + "\n" + model.workspace.context(maxCharacters: 4_000)
     let urls = model.workspace.monitored.map { $0.identity.url.absoluteString }
+    let started = ContinuousClock.now
     inferenceTask = Task {
       do {
         let result = try await inference.suggest(
           userText: String(text.prefix(4_000)), context: context, issueURLs: urls)
+        InferenceTelemetry.record(started: started, intent: result.intent.rawValue, succeeded: true)
         guard token == generation, !Task.isCancelled else { return }
         busy = false
         guard !result.text.isEmpty || result.intent != .chat else {
@@ -115,6 +117,7 @@ final class VoiceConversation {
             model: model)
         }
       } catch {
+        InferenceTelemetry.record(started: started, intent: nil, succeeded: false)
         guard token == generation else { return }
         busy = false
         status =
