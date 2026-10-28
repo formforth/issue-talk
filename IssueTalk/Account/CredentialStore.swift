@@ -7,7 +7,8 @@ actor CredentialStore {
     [
       kSecClass as String: kSecClassGenericPassword,
       kSecAttrService as String: Bundle.main.bundleIdentifier ?? "IssueTalk",
-      kSecAttrAccount as String: "github-oauth",
+      kSecAttrAccount as String:
+        "github-oauth:\(Bundle.main.object(forInfoDictionaryKey: "GitHubOAuthClientID") as? String ?? "")",
     ]
   }
 

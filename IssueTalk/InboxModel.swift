@@ -79,7 +79,7 @@ final class InboxModel {
       try commit(updated)
       return item.id
     } catch {
-      report(error)
+      await reportRequestError(error)
       return nil
     }
   }
@@ -98,7 +98,7 @@ final class InboxModel {
         $0.metadata = result.0
         $0.comments = result.1
       }
-    } catch { report(error) }
+    } catch { await reportRequestError(error) }
   }
 
   func edit(_ id: Int64, draft: String) {
@@ -147,7 +147,7 @@ final class InboxModel {
           $0.operationID = nil
         }
       }
-      report(error)
+      await reportRequestError(error)
     }
   }
 
@@ -183,6 +183,13 @@ final class InboxModel {
     guard !storageFailed, let store else { throw CocoaError(.fileWriteNoPermission) }
     try store.save(candidate)
     workspace = candidate
+  }
+
+  private func reportRequestError(_ error: Error) async {
+    if let value = error as? IssueTalkError, value == .authenticationRequired {
+      try? await account.logout()
+    }
+    report(error)
   }
 
   private func report(_ error: Error) {
