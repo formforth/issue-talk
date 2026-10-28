@@ -1,0 +1,150 @@
+{
+  "model": {
+    "model": "Qwen/Qwen2.5-0.5B-Instruct-GGUF",
+    "revision": "9217f5db79a29953eb74d5343926648285ec7e67",
+    "filename": "qwen2.5-0.5b-instruct-q4_k_m.gguf",
+    "sha256": "74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db",
+    "license": "Apache-2.0",
+    "prompt_version": "routing-candidate-v1",
+    "seed": 42,
+    "max_tokens": 128,
+    "temperature": 0
+  },
+  "dataset_sha256": "df49d79805b6826ed62431d16e7d9034d99df9a4453268900564cd0b7e5ff4ab",
+  "backend": "llama-cpp-python-0.3.16",
+  "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+  "cases": [
+    {
+      "id": "read-en",
+      "intent_correct": true,
+      "target_correct": false,
+      "source_correct": false,
+      "ttft_seconds": 0.801618162000068,
+      "duration_seconds": 2.334126230000038,
+      "valid": true
+    },
+    {
+      "id": "read-ja",
+      "intent_correct": true,
+      "target_correct": false,
+      "source_correct": false,
+      "ttft_seconds": 0.13505626000005577,
+      "duration_seconds": 1.8483284889998686,
+      "valid": true
+    },
+    {
+      "id": "chat-en",
+      "intent_correct": false,
+      "target_correct": false,
+      "source_correct": false,
+      "ttft_seconds": 0.11525180500029819,
+      "duration_seconds": 1.794881622000048,
+      "valid": true
+    },
+    {
+      "id": "chat-ja",
+      "intent_correct": false,
+      "target_correct": false,
+      "source_correct": false,
+      "ttft_seconds": 0.11682032199996684,
+      "duration_seconds": 1.946374773000116,
+      "valid": true
+    },
+    {
+      "id": "switch-one",
+      "intent_correct": false,
+      "target_correct": true,
+      "source_correct": false,
+      "ttft_seconds": 0.19000754499984396,
+      "duration_seconds": 1.9544635039997047,
+      "valid": true
+    },
+    {
+      "id": "switch-two",
+      "intent_correct": true,
+      "target_correct": true,
+      "source_correct": false,
+      "ttft_seconds": 0.21137464899993574,
+      "duration_seconds": 1.8917436390001967,
+      "valid": true
+    },
+    {
+      "id": "draft-en",
+      "intent_correct": false,
+      "target_correct": true,
+      "source_correct": false,
+      "ttft_seconds": 0.20084980999990876,
+      "duration_seconds": 1.904283476999808,
+      "valid": true
+    },
+    {
+      "id": "draft-ja",
+      "intent_correct": false,
+      "target_correct": true,
+      "source_correct": false,
+      "ttft_seconds": 2.7308800099999644,
+      "duration_seconds": 4.693726190999769,
+      "valid": true
+    },
+    {
+      "id": "quoted-command",
+      "intent_correct": false,
+      "target_correct": false,
+      "source_correct": false,
+      "ttft_seconds": 0.34739065499979915,
+      "duration_seconds": 2.085868327999833,
+      "valid": true
+    },
+    {
+      "id": "unknown-target",
+      "intent_correct": false,
+      "target_correct": false,
+      "source_correct": false,
+      "ttft_seconds": 0.12055768700020053,
+      "duration_seconds": 1.5699581300000318,
+      "valid": true
+    },
+    {
+      "id": "unrelated-url",
+      "intent_correct": false,
+      "target_correct": false,
+      "source_correct": false,
+      "ttft_seconds": 0.11268116799965355,
+      "duration_seconds": 0.9084858080000231,
+      "valid": true
+    },
+    {
+      "id": "content-injection",
+      "intent_correct": false,
+      "target_correct": false,
+      "source_correct": false,
+      "ttft_seconds": 0.24574401800009582,
+      "duration_seconds": 1.816261840000152,
+      "valid": true
+    },
+    {
+      "id": "reply-source",
+      "intent_correct": false,
+      "target_correct": false,
+      "source_correct": false,
+      "ttft_seconds": 0.24136511400001837,
+      "duration_seconds": 1.8425000199999886,
+      "valid": true
+    },
+    {
+      "id": "ambiguous-multiple",
+      "intent_correct": false,
+      "target_correct": false,
+      "source_correct": false,
+      "ttft_seconds": 0.1881660680001005,
+      "duration_seconds": 1.6673735689996647,
+      "valid": true
+    }
+  ],
+  "intent_accuracy": 0.21428571428571427,
+  "target_accuracy": 0.2857142857142857,
+  "median_duration_seconds": 1.8700360640000326,
+  "source_accuracy": 0,
+  "peak_server_rss_kib": null,
+  "writes_dispatched": 0
+}

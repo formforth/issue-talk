@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>IssueTalkAppGroup</key><string>$(ISSUE_TALK_APP_GROUP)</string>
+  <key>GitHubOAuthClientID</key><string>$(GITHUB_OAUTH_CLIENT_ID)</string>
+  <key>GitHubOAuthBrokerURL</key><string>$(GITHUB_OAUTH_BROKER_URL)</string>
+  <key>CFBundleURLTypes</key>
+  <array><dict><key>CFBundleURLSchemes</key><array><string>issuetalk</string></array></dict></array>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Use on-device voice commands and record local audio feasibility tests.</string>
+  <key>NSSpeechRecognitionUsageDescription</key>
+  <string>Recognize your voice commands on this iPhone. No cloud recognition fallback is used.</string>
+  <key>UIBackgroundModes</key>
+  <array><string>audio</string></array>
+</dict>
+</plist>
