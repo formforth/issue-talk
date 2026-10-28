@@ -66,7 +66,7 @@ final class MermaidRenderingTests: XCTestCase {
     coordinator.rendererURL = index
     XCTAssertTrue(
       coordinator.responds(
-        to: #selector(WKNavigationDelegate.webView(_:decidePolicyFor:decisionHandler:))))
+        to: NSSelectorFromString("webView:decidePolicyForNavigationAction:decisionHandler:")))
     XCTAssertTrue(coordinator.allowsNavigation(to: index))
     XCTAssertFalse(coordinator.allowsNavigation(to: URL(string: "https://example.com/index.html")))
     XCTAssertFalse(coordinator.allowsNavigation(to: URL(fileURLWithPath: "/tmp/index.html")))
