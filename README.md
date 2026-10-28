@@ -1,10 +1,13 @@
 # Issue Talk
 
-A SwiftUI iPhone app for a hands-free GitHub Issue inbox. The initial build
-contains an empty inbox, settings navigation, and an independent Swift package.
+A SwiftUI iPhone app for a hands-free GitHub Issue inbox. The app includes
+an Issue list, comment reader, explicit reply composer, and a SwiftPM core.
 GitHub login, issue registration, posting, persistence, local inference, and
 voice are tracked in
 [the implementation epic](https://github.com/formforth/issue-talk/issues/1).
+
+For setup, checks, PR conventions, and installing on a personal iPhone, see
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## 1. Development
 

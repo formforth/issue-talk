@@ -51,6 +51,8 @@ jobs:
       # treefmt-check and pre-commit already cover formatting and offline linters.
       - name: Run nix flake check
         run: nix flake check --print-build-logs
+      - name: Test OAuth broker
+        run: nix develop .#ci --command python -m unittest discover -s broker -v
       - name: Run gitleaks history scan
         run: nix develop .#ci --command gitleaks detect --verbose --redact
       - name: Report Nix store size before cache save
