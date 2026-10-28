@@ -88,6 +88,7 @@
             [
               gh
               pre-commit
+              python3
               swift-format
             ]
             ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isDarwin [ pkgs.swiftlint ];
@@ -101,7 +102,16 @@
               '';
             };
             ci = pkgs.mkShellNoCC {
-              packages = [ pkgs.gitleaks ];
+              packages = [
+                pkgs.gitleaks
+                pkgs.python3
+              ];
+            };
+            broker = pkgs.mkShellNoCC {
+              packages = [
+                pkgs.python3
+                pkgs.python3Packages.gunicorn
+              ];
             };
           };
 
@@ -116,6 +126,11 @@
             };
             settings = {
               formatter = {
+                python = {
+                  command = "${pkgs.ruff}/bin/ruff";
+                  options = [ "format" ];
+                  includes = [ "*.py" ];
+                };
                 swift = {
                   command = "${pkgs.swift-format}/bin/swift-format";
                   options = [
@@ -186,6 +201,11 @@
                 types = [ "markdown" ];
               };
               shellcheck.enable = true;
+              ruff-check = {
+                enable = true;
+                entry = "${pkgs.ruff}/bin/ruff check --fix";
+                types = [ "python" ];
+              };
               treefmt = {
                 enable = true;
                 entry = "${treefmtRun}";
