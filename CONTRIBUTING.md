@@ -119,3 +119,28 @@ Follow [the feasibility protocol](docs/DEVICE-FEASIBILITY.md) for locked-screen
 audio, lifecycle, inference, battery, and interruptions. Store only synthetic,
 non-identifying measurements in public PRs. Hardware-dependent results remain
 pending until somebody actually performs and records the measurement.
+
+## 6. Share Extension Signing
+
+The app embeds IssueTalkShare. On first use, enable Issue Talk in the iOS share
+sheet's More list. Share a GitHub Issue URL from Safari or the GitHub app, then
+open Issue Talk. When connected, it imports queued URLs; Import shared Issues
+retries explicitly. Invalid URLs are rejected, existing monitored Issues are not
+duplicated, and failed imports stay queued. Sharing never posts a comment.
+
+Automatic transfer between the extension and app uses an App Group. Register a
+unique group for your Apple Developer team and enable it for **both** the app
+bundle ID and its `.share` extension ID. In the ignored Local.xcconfig set:
+
+```text
+ISSUE_TALK_APP_GROUP = group.com.yourname.issuetalk
+ISSUE_TALK_SHARED_ENTITLEMENTS = Configuration/Shared.entitlements
+```
+
+Both targets inherit the same Team and group. Regenerate provisioning profiles
+if Xcode cannot enable the capability. Personal Team provisioning does not
+provide the App Groups capability: leave these two settings empty to install
+without it. The share sheet then offers Copy Issue URL; paste that canonical URL
+in the app. The main inbox and manual workflow do not require an App Group.
+Simulator CI builds the extension but cannot establish that your team is entitled
+to a physical-device App Group. Verify the configured handoff on your phone.

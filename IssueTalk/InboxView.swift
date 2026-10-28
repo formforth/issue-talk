@@ -19,6 +19,8 @@ struct InboxView: View {
           NavigationLink("Conversation · \(model.workspace.unread.count) unread Issues") {
             ConversationView(model: model)
           }
+          Button("Import shared Issues") { Task { await model.importSharedIssues() } }
+            .disabled(!model.authenticated || model.busy)
           Text(model.pollStatus).font(.caption).foregroundStyle(.secondary)
         }
         Section("Register an Issue") {
@@ -57,9 +59,13 @@ struct InboxView: View {
       .navigationTitle("Issue Talk")
       .navigationDestination(for: Int64.self) { id in IssueDetailView(model: model, id: id) }
       .toolbar { NavigationLink("Settings") { SettingsView(model: model) } }
-      .task { await model.restoreSession() }
+      .task {
+        await model.restoreSession()
+        await model.importSharedIssues()
+      }
       .task(id: scenePhase) {
         guard scenePhase == .active else { return }
+        await model.importSharedIssues()
         while !Task.isCancelled {
           await model.pollIfNeeded()
           do { try await Task.sleep(for: .seconds(15)) } catch { return }

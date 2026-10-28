@@ -113,6 +113,20 @@ final class InboxModel {
 }
 
 extension InboxModel {
+  func importSharedIssues() async {
+    guard authenticated, !busy, let queue = SharedIssueQueue() else { return }
+    do {
+      for receipt in try queue.pending() {
+        guard !Task.isCancelled else { return }
+        let alreadyMonitored = workspace.monitored.contains { $0.identity == receipt.identity }
+        if !alreadyMonitored {
+          guard await register(receipt.identity.url.absoluteString) != nil else { return }
+        }
+        try queue.remove(receipt)
+      }
+    } catch { message = "Shared URLs could not be read. Saved Issues and drafts are retained." }
+  }
+
   func setMonitoring(_ id: Int64, enabled: Bool) {
     guard !busy else { return }
     do { try update(id) { $0.monitoring = enabled } } catch { report(error) }
