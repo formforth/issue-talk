@@ -14,6 +14,7 @@ struct IssueDetailView: View {
           Text(item.metadata.title).font(.headline)
           MarkdownView(source: item.metadata.body ?? "")
           Link("Open Issue on GitHub", destination: item.identity.url)
+          Button("Discuss this Issue") { model.setDiscussionIssue(id) }
         }
         Section("Comments — tap Reply to select the source") {
           ForEach(item.comments) { comment in

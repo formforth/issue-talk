@@ -10,6 +10,14 @@ struct VoiceView: View {
 
   var body: some View {
     List {
+      if let id = model.workspace.discussionIssueID,
+        let item = model.workspace.issues.first(where: { $0.id == id })
+      {
+        Section("Discussion") {
+          Text("\(item.identity.owner)/\(item.identity.repository) #\(item.identity.number)")
+          NavigationLink("Review draft and reply source") { IssueDetailView(model: model, id: id) }
+        }
+      }
       Section("Conversation") {
         Text(voice.status).textSelection(.enabled)
         if voice.recognizer.active {
