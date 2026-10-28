@@ -25,7 +25,7 @@ struct ConversationView: View {
           chip("All (\(model.workspace.unread.count))", id: nil)
           ForEach(model.workspace.issues) { item in
             chip(
-              "\(item.identity.repository)#\(item.identity.number)\(item.isUnread && item.monitoring ? " •" : "")",
+              "\(item.identity.repository)#\(item.identity.number)\(item.isUnread && item.monitoring ? " (1)" : "")",
               id: item.id
             )
           }
@@ -43,11 +43,10 @@ struct ConversationView: View {
         }.scrollTargetLayout().padding()
       }
       .scrollPosition(id: $scrollID)
-      .onChange(of: filter) { old, _ in
-        let key = old.map(String.init) ?? "all"
-        if let scrollID { scrollPositions[key] = scrollID }
-        scrollID = scrollPositions[filterKey]
+      .onChange(of: scrollID) { _, value in
+        if let value { scrollPositions[filterKey] = value }
       }
+      .onChange(of: filter) { _, _ in scrollID = scrollPositions[filterKey] }
       Divider()
       HStack {
         if speaker.active {
@@ -133,8 +132,10 @@ struct ConversationView: View {
         MarkdownView(source: turn.body)
         HStack {
           ForEach(model.workspace.issues.filter { turn.issueIDs.contains($0.id) }) { item in
-            Text("\(item.identity.repository)#\(item.identity.number)").foregroundStyle(
-              Self.color(item))
+            HStack(spacing: 3) {
+              Circle().fill(Self.color(item)).frame(width: 6, height: 6)
+              Text("\(item.identity.repository)#\(item.identity.number)")
+            }
           }
           Spacer()
           Text(turn.createdAt, style: .time).foregroundStyle(.secondary)
@@ -165,6 +166,14 @@ struct ConversationView: View {
       }
       if turn.role != .user { Spacer(minLength: 32) }
     }
+  }
+
+  private func bubbleColor(_ turn: TimelineEntry) -> Color {
+    guard
+      let issue = model.workspace.issues.filter({ turn.issueIDs.contains($0.id) })
+        .min(by: { $0.id < $1.id })
+    else { return .secondary }
+    return Self.color(issue)
   }
 
   static func color(_ item: MonitoredIssue) -> Color {

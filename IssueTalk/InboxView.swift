@@ -39,7 +39,10 @@ struct InboxView: View {
           ForEach(model.workspace.issues) { item in
             NavigationLink(value: item.id) {
               VStack(alignment: .leading) {
-                Text(item.metadata.title).foregroundStyle(ConversationView.color(item))
+                HStack {
+                  Circle().fill(ConversationView.color(item)).frame(width: 8, height: 8)
+                  Text(item.metadata.title)
+                }
                 if !item.monitoring { Text("Monitoring stopped — history retained").font(.caption) }
                 if item.isUnread && item.monitoring { Text("Unread").font(.caption).bold() }
                 Text("\(item.identity.owner)/\(item.identity.repository) #\(item.identity.number)")
