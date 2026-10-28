@@ -2,6 +2,8 @@ import AVFoundation
 import IssueTalkCore
 import XCTest
 
+@testable import IssueTalk
+
 final class IssueTalkTests: XCTestCase {
   @MainActor
   func testOwnAudioCategoryTransitionDoesNotCancelReading() {
