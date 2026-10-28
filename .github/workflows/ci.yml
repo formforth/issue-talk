@@ -51,6 +51,8 @@ jobs:
       # treefmt-check and pre-commit already cover formatting and offline linters.
       - name: Run nix flake check
         run: nix flake check --print-build-logs
+      - name: Test OAuth broker
+        run: nix develop .#ci --command python -m unittest discover -s broker -v
       - name: Run gitleaks history scan
         run: nix develop .#ci --command gitleaks detect --verbose --redact
       - name: Report Nix store size before cache save
@@ -58,7 +60,7 @@ jobs:
 
   ios:
     runs-on: macos-15
-    timeout-minutes: 20
+    timeout-minutes: 25
     permissions:
       contents: read
     steps:
@@ -111,8 +113,10 @@ jobs:
           extra_nix_config: |
             accept-flake-config = true
             download-buffer-size = 134217728
+      # A partial Nix database restore can break subsequent evaluation; allow full extraction.
       - name: Cache Nix store
-        timeout-minutes: 2
+        id: nix-cache
+        timeout-minutes: 5
         continue-on-error: true
         uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
@@ -121,6 +125,9 @@ jobs:
             nix-hooks-gc6g-v1-${{ runner.os }}-${{ runner.arch }}-
             nix-swiftlint-gc2g-v1-${{ runner.os }}-${{ runner.arch }}-
           gc-max-store-size-macos: 6G
+      - name: Verify Nix store after an interrupted cache restore
+        if: steps.nix-cache.outcome == 'failure'
+        run: nix-store --verify --repair
       - name: Run SwiftLint pre-commit hook
         run: nix develop --command pre-commit run --all-files swiftlint
       - name: Test shared Swift package
@@ -135,6 +142,9 @@ jobs:
             -scheme IssueTalk \
             -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
             -parallel-testing-enabled NO \
+            -test-timeouts-enabled YES \
+            -default-test-execution-time-allowance 60 \
+            -maximum-test-execution-time-allowance 120 \
             -derivedDataPath .derivedData \
             CODE_SIGNING_ALLOWED=NO
 

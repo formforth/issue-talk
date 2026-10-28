@@ -1,4 +1,6 @@
 included:
+  - IssueShare
+  - Shared
   - IssueTalk
   - IssueTalkTests
   - Packages/IssueTalkCore/Sources
