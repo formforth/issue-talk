@@ -142,9 +142,7 @@ struct ConversationView: View {
         }.font(.caption)
       }
       .padding(12)
-      .background(
-        turn.role == .user ? Color.accentColor.opacity(0.14) : Color.secondary.opacity(0.1)
-      )
+      .background(bubbleColor(turn).opacity(0.14))
       .clipShape(RoundedRectangle(cornerRadius: 14))
       .contextMenu {
         if let id = turn.localTurnID {
