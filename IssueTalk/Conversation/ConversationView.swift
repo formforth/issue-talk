@@ -103,7 +103,9 @@ struct ConversationView: View {
     .onReceive(
       NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification)
         .receive(on: RunLoop.main)
-    ) { _ in speaker.stop() }
+    ) { notification in
+      if ReadingSpeaker.isExternalRouteChange(notification) { speaker.stop() }
+    }
     .onDisappear { speaker.stop() }
   }
 

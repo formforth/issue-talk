@@ -10,6 +10,13 @@ final class ReadingSpeaker: NSObject, AVSpeechSynthesizerDelegate {
   private var utterance: AVSpeechUtterance?
   private(set) var active = false
 
+  static func isExternalRouteChange(_ notification: Notification) -> Bool {
+    let reason = (notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? NSNumber)?
+      .uintValue
+    // Our own playback/recording category transition is not a device interruption.
+    return reason != AVAudioSession.RouteChangeReason.categoryChange.rawValue
+  }
+
   func start(_ session: ReadingSession, finished: @escaping () -> Void) throws {
     stop()
     let audio = AVAudioSession.sharedInstance()
